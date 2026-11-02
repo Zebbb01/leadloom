@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (Playwright)
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# local PostgreSQL and n8n data
+/.data/
+
+
+# env files
+.env*
+!.env.example
+
+# terraform
+infra/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+tfplan
+*.tfplan
+
+.DS_Store
