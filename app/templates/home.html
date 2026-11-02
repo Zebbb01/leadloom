@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="stack-lg">
+  <section class="hero">
+    <h1>Leads in. Qualified, deduplicated and in the CRM out.</h1>
+    <p>Website forms, emails and booked meetings arrive in an <strong>n8n</strong> workflow. A Python service
+      checks who the lead already is, reads their company's website, scores and routes them with an LLM whose
+      answer is checked against a schema and overruled by rules in code, then writes the contact, company, deal
+      and a note explaining the score to <strong>HubSpot</strong>. Hot leads ping Slack. Unsure ones wait here for a person.</p>
+  </section>
+
+  <ol class="flow" aria-label="How a lead moves">
+    <li><strong>Webhook in n8n</strong>Form, inbound email (Postmark) or booking (Cal.com), signatures checked.</li>
+    <li><strong>Stored once</strong>A redelivered webhook maps to the same lead.</li>
+    <li><strong>Qualified</strong>Dedupe, website enrichment (robots.txt respected), LLM score, rules.</li>
+    <li><strong>Reviewed if unsure</strong>Low confidence, duplicates or odd messages wait for a person.</li>
+    <li><strong>Synced</strong>HubSpot contact, company, deal and note; Slack alert for hot leads.</li>
+  </ol>
+
+  <section id="try" class="stack">
+    <h2>Try it</h2>
+    <p class="muted">Each sample goes through the real path: this page sends it to n8n in the format the real
+      sender uses (signed like Cal.com, authenticated like Postmark), and n8n calls the service.
+      You can act as the reviewer for your own samples.</p>
+    {% if error %}<p class="flash flash-bad" role="alert">{{ error }}</p>{% endif %}
+    <div class="grid">
+      {% for x in samples %}
+      <form class="panel sample" method="post" action="/demo/send">
+        <input type="hidden" name="sample" value="{{ x.id }}">
+        <div>
+          <span class="badge channel">{{ channel_names[x.channel] }}</span>
+        </div>
+        <h3>{{ x.title }}</h3>
+        <p class="small muted">{{ x.person.name }}{% if x.person.company %}, {{ x.person.company }}{% endif %}</p>
+        <p class="small">{{ x.message | truncate(150) }}</p>
+        <details>
+          <summary>Edit the message or channel</summary>
+          <div class="stack" style="margin-top: 12px">
+            <div>
+              <label for="m-{{ x.id }}">Message</label>
+              <textarea id="m-{{ x.id }}" name="message" maxlength="2000">{{ x.message }}</textarea>
+            </div>
+            <div>
+              <label for="c-{{ x.id }}">Channel</label>
+              <select id="c-{{ x.id }}" name="channel">
+                {% for key, name in channel_names.items() %}
+                <option value="{{ key }}" {% if key == x.channel %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </details>
+        <div class="actions"><button class="btn btn-primary" type="submit">Send through n8n</button></div>
+      </form>
+      {% endfor %}
+    </div>
+    <p class="small muted">Scoring uses the Gemini API's free tier, where Google may use what is sent to improve its
+      products. The samples are made up; do not type real personal data into them.</p>
+  </section>
+</div>
+{% endblock %}

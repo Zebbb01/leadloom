@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}{{ lead.name or lead.email }} · LeadLoom{% endblock %}
+{% block head %}{% if busy %}<meta http-equiv="refresh" content="2">{% endif %}{% endblock %}
+{% block main %}
+<div class="stack-lg">
+  <div class="stack">
+    <a class="small" href="/leads">All leads</a>
+    <h1>{{ lead.name or lead.email }}</h1>
+    <div class="actions">
+      <span class="badge channel">{{ channel_names[row.source] }}</span>
+      <span class="badge status-{{ row.status }}" data-testid="status">{{ status_names[row.status] }}</span>
+      {% if d %}<span class="badge tier-{{ d.tier }}" data-testid="tier">{{ d.tier }} · {{ d.score }}/100</span>
+      <span class="badge">route: {{ d.route }}</span>{% endif %}
+      {% if row.workspace %}<span class="badge">demo</span>{% endif %}
+    </div>
+  </div>
+
+  {% if message %}<p class="flash" role="status">{{ message }}</p>{% endif %}
+  {% if busy %}<p class="flash" role="status">n8n is working on this lead. This page refreshes by itself.</p>{% endif %}
+  {% if row.status == 'failed' or stuck %}
+  <div class="flash flash-bad stack" role="alert">
+    <p>{% if row.status == 'failed' %}The HubSpot sync failed: {{ row.error }}{% else %}No progress for two minutes; the n8n run may have stopped.{% endif %}</p>
+    <form method="post" action="/leads/{{ row.id }}/retry"><button class="btn" type="submit">Retry through n8n</button></form>
+  </div>
+  {% endif %}
+
+  {% if row.status == 'awaiting_review' and d %}
+  <section class="panel stack" aria-labelledby="review-h">
+    <h2 id="review-h">Needs a person</h2>
+    <ul>{% for r in d.review_reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    <form method="post" action="/leads/{{ row.id }}/review" class="stack">
+      <fieldset>
+        <legend>Route</legend>
+        <div class="choices">
+          {% for r in ROUTES %}
+          <label><input type="radio" name="route" value="{{ r }}" {% if r == d.route %}checked{% endif %}> {{ r }}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div style="max-width: 160px">
+        <label for="score">Score (0 to 100)</label>
+        <input id="score" name="score" type="number" min="0" max="100" value="{{ d.score }}" inputmode="numeric">
+      </div>
+      <div>
+        <label for="note">Note for the CRM (optional)</label>
+        <textarea id="note" name="note" maxlength="1000"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit" name="action" value="approve">Approve and sync</button>
+        <button class="btn btn-danger" type="submit" name="action" value="reject">Reject</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <div class="cols">
+    <div class="stack-lg">
+      {% if d %}
+      <section class="panel stack" aria-labelledby="score-h">
+        <h2 id="score-h">Score {{ d.score }}/100: {{ d.tier }}</h2>
+        {% if d.summary %}<p>{{ d.summary }}</p>{% endif %}
+        <div>
+          {% for label, value in [('Fit', d.fit), ('Intent', d.intent), ('Confidence', (d.confidence * 100) | round | int)] %}
+          <div class="meter"><span class="muted">{{ label }}</span><div class="bar"><span style="width: {{ value }}%"></span></div><span class="num">{{ value }}{% if label == 'Confidence' %}%{% endif %}</span></div>
+          {% endfor %}
+        </div>
+        <p class="small muted">Score = 0.6 × fit + 0.4 × intent. Hot from 75, warm from 50.{% if d.get('score_override') is not none %} Set by the reviewer.{% endif %}</p>
+        {% if d.reasons %}<div><h3>Why</h3><ul>{% for r in d.reasons %}<li>{{ r }}</li>{% endfor %}</ul></div>{% endif %}
+        {% if d.overrides %}
+        <div>
+          <h3>Rules that changed the model's answer</h3>
+          <ul data-testid="rules">{% for o in d.overrides %}<li><code>{{ o.rule }}</code>: {{ o.effect }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        {% if d.model %}
+        <p class="small muted">The model said: route {{ d.model.route }}, fit {{ d.model.fit }}, intent {{ d.model.intent }},
+          confidence {{ '%.2f' | format(d.model.confidence) }}{% if d.model.fleet_size %}, {{ d.model.fleet_size }} vehicles{% endif %}.</p>
+        {% endif %}
+        {% if d.reviewed %}
+        <p class="note">{{ 'Approved' if d.reviewed.approved else 'Rejected' }} by {{ d.reviewed.by }}{% if d.reviewed.changes %}
+          ({% for k, v in d.reviewed.changes.items() %}{{ k }} {{ v[0] }} to {{ v[1] }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}.
+          {{ d.reviewed.note }}</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <section class="panel stack" aria-labelledby="lead-h">
+        <h2 id="lead-h">What they sent</h2>
+        {% if lead.message %}<div class="message">{{ lead.message }}</div>{% endif %}
+        <dl class="kv">
+          <dt>Email</dt><dd>{{ lead.email }}</dd>
+          {% if lead.company %}<dt>Company</dt><dd>{{ lead.company }}</dd>{% endif %}
+          {% if lead.title %}<dt>Role</dt><dd>{{ lead.title }}</dd>{% endif %}
+          {% if lead.phone %}<dt>Phone</dt><dd>{{ lead.phone }}</dd>{% endif %}
+          {% if lead.website %}<dt>Website</dt><dd>{{ lead.website }}</dd>{% endif %}
+          {% if lead.meeting_at %}<dt>Meeting</dt><dd>{{ lead.meeting_at }}</dd>{% endif %}
+          <dt>Delivery ID</dt><dd class="mono">{{ row.external_id }}</dd>
+        </dl>
+      </section>
+    </div>
+
+    <div class="stack-lg">
+      <section class="panel stack" aria-labelledby="crm-h">
+        <h2 id="crm-h">HubSpot</h2>
+        {% set h = row.hubspot %}
+        {% if h and h.skipped %}<p class="muted">{{ h.skipped }}</p>
+        {% elif h %}
+        <dl class="kv" data-testid="hubspot">
+          <dt>Contact</dt><dd>{% if h.urls.contact %}<a href="{{ h.urls.contact }}">{{ h.contact_id }}</a>{% else %}{{ h.contact_id }}{% endif %}</dd>
+          {% if h.company_id %}<dt>Company</dt><dd>{% if h.urls.company %}<a href="{{ h.urls.company }}">{{ h.company_id }}</a>{% else %}{{ h.company_id }}{% endif %}</dd>{% endif %}
+          {% if h.deal_id %}<dt>Deal</dt><dd>{% if h.urls.deal %}<a href="{{ h.urls.deal }}">{{ h.deal_id }}</a>{% else %}{{ h.deal_id }}{% endif %}{% if h.deal_reused %} (open deal reused){% endif %}</dd>{% endif %}
+          <dt>Note</dt><dd>{{ h.note_id }}</dd>
+        </dl>
+        {% elif row.status in ('discarded', 'rejected') %}<p class="muted">Not sent to the CRM.</p>
+        {% else %}<p class="muted">Not synced yet.</p>{% endif %}
+      </section>
+
+      {% if d and d.dedupe %}
+      <section class="panel stack" aria-labelledby="dedupe-h">
+        <h2 id="dedupe-h">Already known?</h2>
+        {% set e = d.dedupe.existing %}
+        {% if e %}<p>Yes: {% if e.hubspot_id %}HubSpot contact {{ e.hubspot_id }}{% if e.lifecyclestage %} ({{ e.lifecyclestage }}){% endif %}{% endif %}{% if e.earlier_leads %}{% if e.hubspot_id %}, {% endif %}{{ e.earlier_leads }} earlier lead{{ 's' if e.earlier_leads != 1 }} here{% endif %}.</p>
+        {% else %}<p>No contact with this email.</p>{% endif %}
+        {% for dup in d.dedupe.possible_duplicates %}
+        <p class="small">Possible duplicate: {{ dup.name }} &lt;{{ dup.email }}&gt;, {{ dup.reason }} ({{ dup.where }})</p>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% if d %}
+      <section class="panel stack" aria-labelledby="site-h">
+        <h2 id="site-h">Company website</h2>
+        {% set site = d.site %}
+        {% if not site %}<p class="muted">No company website: personal email and none given.</p>
+        {% elif site.status == 'ok' %}
+        <p><strong>{{ site.site_name or site.title }}</strong>{% if site.cached %} <span class="badge">cached</span>{% endif %}</p>
+        {% if site.description %}<p class="small">{{ site.description }}</p>{% endif %}
+        <p class="small muted mono">{{ site.url }}</p>
+        {% else %}
+        <p data-testid="site-status">{{ site_names.get(site.status, site.status) }}{% if site.error %} <span class="small muted">({{ site.error }})</span>{% endif %}</p>
+        <p class="small muted mono">{{ site.url }}</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <section class="panel stack" aria-labelledby="cost-h">
+        <h2 id="cost-h">Cost</h2>
+        <p><span class="mono" data-testid="cost">{{ cost.usd | usd }}</span> <span class="small muted">at list price ({{ cost.tokens_in }} tokens in, {{ cost.tokens_out }} out). Free on the free tier.</span></p>
+        {% if steps %}
+        <table>
+          <thead><tr><th>Step</th><th class="num">Time</th><th class="num">Tokens</th></tr></thead>
+          <tbody>
+            {% for st in steps %}<tr><td class="small mono">{{ st.name }}</td><td class="num small">{{ st.ms }} ms</td><td class="num small">{{ st.tokens_in + st.tokens_out }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+
+  <section class="panel stack" aria-labelledby="audit-h">
+    <h2 id="audit-h">Audit log</h2>
+    <ol class="timeline" data-testid="audit">
+      {% for ev in events %}
+      <li>
+        <span class="small muted num">{{ ev.at | when(time_only=True) }}</span>
+        <div><strong>{{ ev.action | replace('_', ' ') }}</strong> <span class="small muted">by {{ ev.actor }}</span>
+          {% if ev.detail %}<pre>{{ ev.detail | tojson }}</pre>{% endif %}</div>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="small muted">Append-only: the database rejects any change to these rows.</p>
+  </section>
+</div>
+{% endblock %}
