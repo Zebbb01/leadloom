@@ -1,0 +1,788 @@
+{
+  "id": "LeadLoomIntake01",
+  "name": "LeadLoom: lead intake",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LeadLoom: lead intake\nThree ways in: the website form, inbound email (Postmark's JSON) and bookings (Cal.com, signed).\n\nn8n does the plumbing: it receives each event, forwards the raw body to the LeadLoom service, answers the sender, routes on the service's decision, waits for a person when the lead is unsure, and sends the Slack alert. The service (Python) checks signatures, dedupes, enriches, scores, and writes HubSpot, each step idempotent and audited.\n\nConfig comes from env: `LEADLOOM_API_URL`, `LEADLOOM_API_KEY`, `SLACK_WEBHOOK_URL`.",
+        "width": 760,
+        "height": 260,
+        "color": 7
+      },
+      "id": "19560826-3dc2-57a0-b345-361d762965c3",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Retry\nThe review page's Retry button (and an approval whose wait has expired) re-enters here. Qualify is idempotent: it returns the lead's next step.",
+        "width": 520,
+        "height": 140,
+        "color": 7
+      },
+      "id": "2d6e9f3e-e1af-5e4b-a6f4-f7ac39416f0f",
+      "name": "Retry note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads/form",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "eea35a2c-8333-5c40-ad45-8f2672519801",
+      "name": "Website form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "7d125039-cc83-5020-86a0-b992b94c0f53"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads/email",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "e0fc9bb7-c82e-51ff-9223-70a67fe5b6ad",
+      "name": "Inbound email",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "784e7c5a-d417-56c0-8d04-54081e4b43ad"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads/booking",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "04e59ac2-9eb8-56b4-a1cc-f5df338354cb",
+      "name": "Booking (Cal.com)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "7dde47e6-331a-5e17-9ed5-19dada88c1e8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADLOOM_API_URL }}/v1/intake/{{ $json.webhookUrl.split('/').pop() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LEADLOOM_API_KEY }}"
+            },
+            {
+              "name": "X-Source-Authorization",
+              "value": "={{ $json.headers.authorization ?? '' }}"
+            },
+            {
+              "name": "X-Cal-Signature-256",
+              "value": "={{ $json.headers['x-cal-signature-256'] ?? '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "37a43fdd-05bb-5e78-8470-ab86f1f13f92",
+      "name": "Store lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "ccdd6557-a867-5771-b919-61bbb0a9c9f4",
+      "name": "Answer the sender",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3e0aa8a4-03d2-59e9-b0ad-02c5c1dcd483",
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 201
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d175feb2-7563-58cc-ab0f-e1b20db0add1",
+      "name": "New lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADLOOM_API_URL }}/v1/leads/{{ $json.body.lead_id }}/qualify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LEADLOOM_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "d4cf8883-8254-5ae6-a44c-0043d27fe8dd",
+      "name": "Qualify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "833baa7e-5c1f-5321-bccb-f8892416314c",
+                    "leftValue": "={{ $json.next }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "review"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "review"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7839583a-6a24-5472-8782-4b15ed73e496",
+                    "leftValue": "={{ $json.next }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "sync"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sync"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9c39a0a5-e081-54c1-be0a-2d5937fd334c",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADLOOM_API_URL }}/v1/leads/{{ $json.lead_id }}/hold",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LEADLOOM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ resume_url: $execution.resumeUrl }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "410e5321-ee58-5adc-8a78-06e54f62a3a1",
+      "name": "Hold for review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 7,
+        "resumeUnit": "days",
+        "options": {}
+      },
+      "id": "0a302722-c17d-5add-9903-b21ae4863ade",
+      "name": "Wait for a reviewer",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1700,
+        100
+      ],
+      "webhookId": "8f50011c-af63-5eeb-8f17-29bda0ba2d4b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "afbb0467-92a0-57d1-bc89-f305412c6720",
+              "leftValue": "={{ $json.body?.decision }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "approve"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8925aad3-2d96-5c2f-88ed-e4cfbe3c2cc8",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1940,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADLOOM_API_URL }}/v1/leads/{{ $json.lead_id ?? $json.body.lead_id }}/sync",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LEADLOOM_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "33b43781-72c1-5ad1-9140-70b8267361d8",
+      "name": "Sync to HubSpot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2180,
+        320
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bf329e0e-9a83-56f9-bbec-be5d1aa75185",
+              "leftValue": "={{ !!$json.alert && !!$env.SLACK_WEBHOOK_URL }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "69dd38a8-7620-5c0e-b21f-dc4d1f561cc1",
+      "name": "Hot lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2420,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.alert.text }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b14d6d6b-3881-56a8-9f8c-07e4427f5091",
+      "name": "Slack alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADLOOM_API_URL }}/v1/leads/{{ $('Sync to HubSpot').item.json.lead_id }}/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.LEADLOOM_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: \"alert_sent\", detail: { channel: \"slack\" } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b516bf22-fa80-51b4-8be0-143611900388",
+      "name": "Log the alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leads/retry",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "00f23486-7621-54e1-8de8-4082ec79ee78",
+      "name": "Retry (from LeadLoom)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        860
+      ],
+      "webhookId": "7e06307e-8307-5fa3-b2f8-7c4eeda2f8b9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a388f543-3b9c-5934-b15a-36c62ebda4e2",
+              "leftValue": "={{ $json.headers['x-leadloom-key'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "={{ $env.LEADLOOM_API_KEY }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "72045c84-727e-519a-adc5-42d35c60a3ef",
+      "name": "Key valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        260,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"accepted\": true } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "4908d657-b894-5b0c-a577-e36c34b74753",
+      "name": "Accept",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Wrong or missing X-LeadLoom-Key.\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "64efc361-489b-53e9-81fa-de9dd6deb994",
+      "name": "Refuse",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        960
+      ]
+    }
+  ],
+  "connections": {
+    "Website form": {
+      "main": [
+        [
+          {
+            "node": "Store lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inbound email": {
+      "main": [
+        [
+          {
+            "node": "Store lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking (Cal.com)": {
+      "main": [
+        [
+          {
+            "node": "Store lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store lead": {
+      "main": [
+        [
+          {
+            "node": "Answer the sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer the sender": {
+      "main": [
+        [
+          {
+            "node": "New lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New lead?": {
+      "main": [
+        [
+          {
+            "node": "Qualify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Qualify": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Hold for review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync to HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hold for review": {
+      "main": [
+        [
+          {
+            "node": "Wait for a reviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for a reviewer": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Sync to HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Sync to HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Hot lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hot lead?": {
+      "main": [
+        [
+          {
+            "node": "Slack alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Slack alert": {
+      "main": [
+        [
+          {
+            "node": "Log the alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry (from LeadLoom)": {
+      "main": [
+        [
+          {
+            "node": "Key valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Key valid?": {
+      "main": [
+        [
+          {
+            "node": "Accept",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accept": {
+      "main": [
+        [
+          {
+            "node": "Qualify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC",
+    "saveManualExecutions": true
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

@@ -71,7 +71,7 @@ def run(samples: list[dict], client: httpx.Client, s: Settings, pause_s: float =
         lead = lead_of(x)
         dedupe = {"existing": None, "possible_duplicates": [], "open_deal_id": None, **x.get("context", {})}
         site = site_of(x)
-        started = time.monotonic()
+        started = time.perf_counter()
         usage = {"tokens_in": 0, "tokens_out": 0}
         assessment, error = None, None
         if not scoring.junk_rule(lead):
@@ -100,7 +100,7 @@ def run(samples: list[dict], client: httpx.Client, s: Settings, pause_s: float =
                 "tokens_in": usage["tokens_in"],
                 "tokens_out": usage["tokens_out"],
                 "cost_usd": llm.cost_usd(s.llm_model, usage["tokens_in"], usage["tokens_out"]),
-                "ms": round((time.monotonic() - started) * 1000),
+                "ms": round((time.perf_counter() - started) * 1000),
             }
         )
         r = results[-1]

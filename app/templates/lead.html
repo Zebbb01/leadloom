@@ -93,7 +93,7 @@
           {% if lead.title %}<dt>Role</dt><dd>{{ lead.title }}</dd>{% endif %}
           {% if lead.phone %}<dt>Phone</dt><dd>{{ lead.phone }}</dd>{% endif %}
           {% if lead.website %}<dt>Website</dt><dd>{{ lead.website }}</dd>{% endif %}
-          {% if lead.meeting_at %}<dt>Meeting</dt><dd>{{ lead.meeting_at }}</dd>{% endif %}
+          {% if lead.meeting_at %}<dt>Meeting</dt><dd>{{ lead.meeting_at | when }}</dd>{% endif %}
           <dt>Delivery ID</dt><dd class="mono">{{ row.external_id }}</dd>
         </dl>
       </section>

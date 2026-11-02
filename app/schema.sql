@@ -2,6 +2,9 @@
 -- through the Data API, and n8n keeps its tables in the `n8n` schema of the same
 -- database. Every statement is idempotent; the app runs this file at startup.
 create schema if not exists leadloom;
+-- n8n does not create its own schema; doing it here lets a fresh database work
+-- once the API has started (the deploy wakes the API before n8n's setup job).
+create schema if not exists n8n;
 set search_path = leadloom;
 
 create table if not exists leads (

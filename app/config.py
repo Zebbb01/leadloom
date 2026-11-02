@@ -35,7 +35,7 @@ class Settings:
             api_key=e("LEADLOOM_API_KEY", ""),
             reviewer_key=e("REVIEWER_KEY", ""),
             public_url=e("PUBLIC_URL", cls.public_url).rstrip("/"),
-            n8n_webhook_url=e("N8N_WEBHOOK_URL", "").rstrip("/"),
+            n8n_webhook_url=e("LEADLOOM_N8N_WEBHOOK_URL", "").rstrip("/"),
             llm_endpoint=e("LLM_ENDPOINT", cls.llm_endpoint).rstrip("/"),
             llm_api_key=e("LLM_API_KEY", ""),
             llm_model=e("LLM_MODEL", cls.llm_model),

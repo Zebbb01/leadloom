@@ -30,3 +30,4 @@ tfplan
 *.tfplan
 
 .DS_Store
+/.dev.log

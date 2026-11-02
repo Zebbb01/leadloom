@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
@@ -91,8 +92,10 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
         ROUTES=ROUTES, channel_names=CHANNEL_NAMES, status_names=STATUS_NAMES, site_names=SITE_NAMES
     )
     templates.env.filters["usd"] = lambda x: f"${x:.5f}" if x else "$0"
-    templates.env.filters["when"] = lambda dt, time_only=False: dt.astimezone(UTC).strftime(
-        "%H:%M:%S" if time_only else "%b %d, %H:%M UTC"
+    templates.env.filters["when"] = lambda dt, time_only=False: (
+        (datetime.fromisoformat(dt) if isinstance(dt, str) else dt)
+        .astimezone(UTC)
+        .strftime("%H:%M:%S" if time_only else "%b %d, %H:%M UTC")
     )
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 
@@ -216,6 +219,8 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             row["status"] == "qualified" and row["decision"]["next"] in ("sync", "review")
         )
         stuck = busy and row["updated_at"] < datetime.now(UTC) - timedelta(minutes=2)
+        # After Retry, keep refreshing until the lead leaves the failed state.
+        watching = request.query_params.get("watch") == "1" and row["status"] in ("failed", "approved", "received")
         return page(
             request,
             "lead.html",
@@ -225,10 +230,13 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             events=events,
             steps=steps,
             cost=pipeline.cost(db, str(lead_id)),
-            busy=busy and not stuck,
+            busy=(busy and not stuck) or watching,
             stuck=stuck,
             message=request.query_params.get("message"),
         )
+
+    def back(lead_id: uuid.UUID, message: str, **extra: str) -> RedirectResponse:
+        return RedirectResponse(f"/leads/{lead_id}?{urlencode({'message': message, **extra})}", 303)
 
     @app.post("/leads/{lead_id}/review")
     def review(
@@ -253,7 +261,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
                 note=note.strip(),
             )
         except pipeline.Conflict as e:
-            return RedirectResponse(f"/leads/{lead_id}?message={e}", 303)
+            return back(lead_id, str(e))
         try:
             how = pipeline.resume_n8n(st.n8n, s, str(lead_id), result["resume_url"], result["status"] == "approved")
             message = {
@@ -263,17 +271,16 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             }[how]
         except HttpError as e:
             message = f"Saved, but n8n could not be reached ({e}). Use Retry."
-        return RedirectResponse(f"/leads/{lead_id}?message={message}", 303)
+        return back(lead_id, message)
 
     @app.post("/leads/{lead_id}/retry")
     def retry(lead_id: uuid.UUID, request: Request) -> RedirectResponse:
         visible(request, lead_id)
         try:
             pipeline.retry_in_n8n(request.app.state.n8n, s, str(lead_id))
-            message = "Sent back through n8n."
+            return back(lead_id, "Sent back through n8n.", watch="1")
         except HttpError as e:
-            message = f"n8n could not be reached ({e})."
-        return RedirectResponse(f"/leads/{lead_id}?message={message}", 303)
+            return back(lead_id, f"n8n could not be reached ({e}).")
 
     @app.get("/signin", response_class=HTMLResponse)
     def signin_page(request: Request) -> HTMLResponse:
@@ -320,7 +327,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
         if sent >= s.demo_daily_per_workspace:
             return RedirectResponse("/?error=This browser has sent today's demo leads. Try again tomorrow.", 303)
         if not s.n8n_webhook_url:
-            return RedirectResponse("/?error=n8n is not configured here (N8N_WEBHOOK_URL).", 303)
+            return RedirectResponse("/?error=n8n is not configured here (LEADLOOM_N8N_WEBHOOK_URL).", 303)
         channel = channel if channel in intake.SOURCES else x["channel"]
         body, headers = demo_payload(s, x, channel, message.strip() or x["message"], ws)
         try:

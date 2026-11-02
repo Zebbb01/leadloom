@@ -1,6 +1,6 @@
 import base64
 import json
-from urllib.parse import unquote
+from urllib.parse import unquote_plus
 from urllib.robotparser import RobotFileParser
 
 import pytest
@@ -87,7 +87,7 @@ def test_review_flow_over_http(client, router):
         f"/leads/{lead_id}/review",
         data={"action": "approve", "route": "sales", "score": "81", "note": "Booked a call."},
     )
-    assert r.status_code == 303 and "picked the lead up" in unquote(r.headers["location"])
+    assert r.status_code == 303 and "picked the lead up" in unquote_plus(r.headers["location"])
     sent = router.to("n8n.test", "/webhook-waiting/9")
     assert json.loads(sent[0].content) == {"lead_id": lead_id, "decision": "approve"}
 

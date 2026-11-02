@@ -1,0 +1,15 @@
+{
+  "name": "leadloom-e2e",
+  "private": true,
+  "description": "Playwright end-to-end tests for LeadLoom, run against the whole local stack: PostgreSQL, n8n, the API and the mock services.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24"
+  }
+}

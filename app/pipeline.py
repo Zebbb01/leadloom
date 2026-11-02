@@ -5,7 +5,8 @@ into the append-only audit log."""
 
 import html
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
@@ -60,13 +61,27 @@ def next_step(row: dict) -> str:
     return DECIDED_NEXT.get(row["status"], "qualify")
 
 
+@contextmanager
+def lead_lock(db: Pool, lead_id: str) -> Iterator[None]:
+    """One qualify or sync per lead at a time. An overlapping call (n8n retrying while
+    the first call still runs) gets a 409, and n8n tries again a few seconds later."""
+    with db.connection() as c:
+        row = c.execute("select pg_try_advisory_lock(hashtext(%s)) as ok", (lead_id,)).fetchone()
+        if not row or not row["ok"]:
+            raise Conflict("This lead is being processed; try again shortly.")
+        try:
+            yield
+        finally:
+            c.execute("select pg_advisory_unlock(hashtext(%s))", (lead_id,))
+
+
 def step(db: Pool, lead_id: str, name: str, fn: Callable[[], tuple[Any, dict | None]], model: str = "") -> Any:
     """Runs fn once per lead: a finished step is read back instead of run again."""
     with db.connection() as c:
         row = c.execute("select output from steps where lead_id = %s and name = %s", (lead_id, name)).fetchone()
     if row:
         return row["output"]
-    started = time.monotonic()
+    started = time.perf_counter()
     output, usage = fn()
     tokens_in, tokens_out = (usage or {}).get("tokens_in", 0), (usage or {}).get("tokens_out", 0)
     with db.connection() as c:
@@ -80,7 +95,7 @@ def step(db: Pool, lead_id: str, name: str, fn: Callable[[], tuple[Any, dict | N
                 tokens_in,
                 tokens_out,
                 llm.cost_usd(model, tokens_in, tokens_out),
-                round((time.monotonic() - started) * 1000),
+                round((time.perf_counter() - started) * 1000),
             ),
         )
     return output
@@ -152,43 +167,41 @@ def qualify(
 ) -> dict:
     """Dedupe, enrich, score and decide the next step. Calling it again returns the
     next step for the lead's current state, so n8n can re-enter at any point."""
-    # ponytail: two overlapping calls for one lead could both call the model before
-    # the first stores its step; n8n's timeout is set above the slowest call so this
-    # stays rare. Take a per-lead advisory lock if it ever shows up in the audit log.
-    row = get(db, lead_id)
-    if row["status"] != "received":
+    with lead_lock(db, lead_id):
+        row = get(db, lead_id)
+        if row["status"] != "received":
+            return {"lead_id": lead_id, "next": next_step(row), "decision": row["decision"]}
+        lead = Lead.model_validate(row["lead"])
+        dd: dict = step(db, lead_id, "dedupe", lambda: (dedupe.find(db, lead_id, lead, crm), None))
+        domain = dedupe.company_domain(lead)
+        url = lead.website or (f"https://{domain}" if domain else "")
+        site = step(db, lead_id, "enrich", lambda: (enrich_site(db, s, web, url), None)) if url else None
+        scored: dict = step(db, lead_id, "score", lambda: score(db, s, model, lead, dd, site), s.llm_model)
+        assessment = scoring.Assessment.model_validate(scored["assessment"]) if scored["assessment"] else None
+        decision = {**scoring.decide(lead, assessment, dd, scored["error"]), "dedupe": dd, "site": site}
+        with db.connection() as c, c.transaction():
+            updated = c.execute(
+                "update leads set status = %s, decision = %s, updated_at = now() where id = %s and status = 'received'",
+                ("discarded" if decision["next"] == "discard" else "qualified", Jsonb(decision), lead_id),
+            ).rowcount
+            if updated:
+                audit(
+                    c,
+                    lead_id,
+                    "leadloom",
+                    "qualified",
+                    {
+                        "score": decision["score"],
+                        "tier": decision["tier"],
+                        "route": decision["route"],
+                        "next": decision["next"],
+                        "rules": [o["rule"] for o in decision["overrides"]],
+                        "review_reasons": decision["review_reasons"],
+                        "model_error": scored["error"],
+                    },
+                )
+        row = get(db, lead_id)
         return {"lead_id": lead_id, "next": next_step(row), "decision": row["decision"]}
-    lead = Lead.model_validate(row["lead"])
-    dd: dict = step(db, lead_id, "dedupe", lambda: (dedupe.find(db, lead_id, lead, crm), None))
-    domain = dedupe.company_domain(lead)
-    url = lead.website or (f"https://{domain}" if domain else "")
-    site = step(db, lead_id, "enrich", lambda: (enrich_site(db, s, web, url), None)) if url else None
-    scored: dict = step(db, lead_id, "score", lambda: score(db, s, model, lead, dd, site), s.llm_model)
-    assessment = scoring.Assessment.model_validate(scored["assessment"]) if scored["assessment"] else None
-    decision = {**scoring.decide(lead, assessment, dd, scored["error"]), "dedupe": dd, "site": site}
-    with db.connection() as c, c.transaction():
-        updated = c.execute(
-            "update leads set status = %s, decision = %s, updated_at = now() where id = %s and status = 'received'",
-            ("discarded" if decision["next"] == "discard" else "qualified", Jsonb(decision), lead_id),
-        ).rowcount
-        if updated:
-            audit(
-                c,
-                lead_id,
-                "leadloom",
-                "qualified",
-                {
-                    "score": decision["score"],
-                    "tier": decision["tier"],
-                    "route": decision["route"],
-                    "next": decision["next"],
-                    "rules": [o["rule"] for o in decision["overrides"]],
-                    "review_reasons": decision["review_reasons"],
-                    "model_error": scored["error"],
-                },
-            )
-    row = get(db, lead_id)
-    return {"lead_id": lead_id, "next": next_step(row), "decision": row["decision"]}
 
 
 def hold(db: Pool, s: Settings, lead_id: str, resume_url: str) -> dict:
@@ -402,37 +415,38 @@ def alert_text(s: Settings, lead_id: str, lead: Lead, d: dict, result: dict) -> 
 def sync(db: Pool, s: Settings, lead_id: str, crm: httpx.Client | None) -> dict:
     """Pushes the lead to HubSpot. The alert is claimed once, so a retried call never
     alerts twice."""
-    row = get(db, lead_id)
-    if row["status"] == "synced":
-        return {"lead_id": lead_id, "status": "synced", "hubspot": row["hubspot"], "alert": None}
-    if next_step(row) != "sync":
-        raise Conflict(f"The lead is {row['status']}; there is nothing to sync.")
-    lead, d = Lead.model_validate(row["lead"]), row["decision"]
-    try:
-        result = push(db, s, lead_id, lead, d, crm) if crm else {"skipped": "HubSpot is not configured."}
-    except HttpError as e:
+    with lead_lock(db, lead_id):
+        row = get(db, lead_id)
+        if row["status"] == "synced":
+            return {"lead_id": lead_id, "status": "synced", "hubspot": row["hubspot"], "alert": None}
+        if next_step(row) != "sync":
+            raise Conflict(f"The lead is {row['status']}; there is nothing to sync.")
+        lead, d = Lead.model_validate(row["lead"]), row["decision"]
+        try:
+            result = push(db, s, lead_id, lead, d, crm) if crm else {"skipped": "HubSpot is not configured."}
+        except HttpError as e:
+            with db.connection() as c, c.transaction():
+                c.execute(
+                    "update leads set status = 'failed', error = %s, updated_at = now() where id = %s",
+                    (str(e)[:500], lead_id),
+                )
+                audit(c, lead_id, "leadloom", "sync_failed", {"error": str(e)[:500]})
+            raise
         with db.connection() as c, c.transaction():
-            c.execute(
-                "update leads set status = 'failed', error = %s, updated_at = now() where id = %s",
-                (str(e)[:500], lead_id),
+            claimed = (
+                d["alert"]
+                and c.execute(
+                    "update leads set alert_claimed_at = now() where id = %s and alert_claimed_at is null", (lead_id,)
+                ).rowcount
+                == 1
             )
-            audit(c, lead_id, "leadloom", "sync_failed", {"error": str(e)[:500]})
-        raise
-    with db.connection() as c, c.transaction():
-        claimed = (
-            d["alert"]
-            and c.execute(
-                "update leads set alert_claimed_at = now() where id = %s and alert_claimed_at is null", (lead_id,)
-            ).rowcount
-            == 1
-        )
-        c.execute(
-            "update leads set status = 'synced', hubspot = %s, error = null, updated_at = now() where id = %s",
-            (Jsonb(result), lead_id),
-        )
-        audit(c, lead_id, "leadloom", "synced", result)
-    alert = {"text": alert_text(s, lead_id, lead, d, result)} if claimed else None
-    return {"lead_id": lead_id, "status": "synced", "hubspot": result, "alert": alert}
+            c.execute(
+                "update leads set status = 'synced', hubspot = %s, error = null, updated_at = now() where id = %s",
+                (Jsonb(result), lead_id),
+            )
+            audit(c, lead_id, "leadloom", "synced", result)
+        alert = {"text": alert_text(s, lead_id, lead, d, result)} if claimed else None
+        return {"lead_id": lead_id, "status": "synced", "hubspot": result, "alert": alert}
 
 
 def resume_n8n(client: httpx.Client, s: Settings, lead_id: str, resume_url: str | None, approved: bool) -> str:
@@ -453,7 +467,7 @@ def resume_n8n(client: httpx.Client, s: Settings, lead_id: str, resume_url: str 
 
 def retry_in_n8n(client: httpx.Client, s: Settings, lead_id: str) -> str:
     if not s.n8n_webhook_url:
-        raise HttpError("n8n is not configured (N8N_WEBHOOK_URL).", retryable=False)
+        raise HttpError("n8n is not configured (LEADLOOM_N8N_WEBHOOK_URL).", retryable=False)
     send(
         client,
         "POST",

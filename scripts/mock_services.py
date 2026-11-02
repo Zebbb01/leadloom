@@ -165,6 +165,11 @@ def create_mock() -> FastAPI:
         )
         return {"ok": True}
 
+    @app.delete("/hubspot/_fail")
+    def clear_failures() -> dict:
+        state["failures"].clear()
+        return {"ok": True}
+
     @app.get("/hubspot/_state")
     def hubspot_state() -> dict:
         return {"objects": state["objects"], "associations": state["assoc"], "calls": state["calls"]}
