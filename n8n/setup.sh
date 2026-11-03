@@ -4,6 +4,7 @@
 # locally. Unpublishing first lets the import replace a published workflow; a
 # running n8n picks the new version up within 15 seconds.
 set -e
-n8n unpublish:workflow --id=LeadLoomIntake01
+# Fails on a fresh database, where the workflow does not exist yet.
+n8n unpublish:workflow --id=LeadLoomIntake01 || true
 n8n import:workflow --separate --input=/home/node/workflows
 n8n publish:workflow --id=LeadLoomIntake01

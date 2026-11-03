@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import psycopg
@@ -94,7 +94,8 @@ def main() -> None:
         "DEMO_DAILY_PER_WORKSPACE": "1000",
         # n8n
         "DB_TYPE": "postgresdb",
-        "DB_POSTGRESDB_HOST": db.hostname or "127.0.0.1",
+        # On Linux pgserver listens on a Unix socket, named in the URL's host parameter.
+        "DB_POSTGRESDB_HOST": parse_qs(db.query).get("host", [db.hostname or "127.0.0.1"])[0],
         "DB_POSTGRESDB_PORT": str(db.port or 5432),
         "DB_POSTGRESDB_DATABASE": db.path.lstrip("/"),
         "DB_POSTGRESDB_USER": db.username or "postgres",
@@ -135,7 +136,9 @@ def main() -> None:
                 ["publish:workflow", "--id=LeadLoomIntake01"],
             ):
                 print("n8n", *args, flush=True)
-                subprocess.run([*n8n, *args], cwd=ROOT, env=env, check=True, stdout=log, stderr=subprocess.STDOUT)
+                # Unpublishing fails on a fresh database, where the workflow does not exist yet.
+                check = args[0] != "unpublish:workflow"
+                subprocess.run([*n8n, *args], cwd=ROOT, env=env, check=check, stdout=log, stderr=subprocess.STDOUT)
         start([*n8n, "start"], env, "n8n.log")
         wait_for(f"http://127.0.0.1:{N8N_PORT}/healthz/readiness", "n8n")
         start(
