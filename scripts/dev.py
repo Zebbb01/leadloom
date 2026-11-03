@@ -69,9 +69,10 @@ def main() -> None:
         server = pgserver.get_server(DATA / "pg", cleanup_mode="stop")
     except subprocess.TimeoutExpired:
         # After an unclean stop, PostgreSQL on Windows spends ~30 s on recovery
-        # (it waits on its own log file); pgserver gives up after 10 s.
+        # (it waits on its own log file); pgserver gives up after 10 s but caches
+        # the failed handle, so the retry builds a new one.
         time.sleep(40)
-        server = pgserver.get_server(DATA / "pg", cleanup_mode="stop")
+        server = pgserver.PostgresServer((DATA / "pg").resolve(), cleanup_mode="stop")
     database_url = server.get_uri()
     with psycopg.connect(database_url, autocommit=True) as c:
         c.execute("create schema if not exists n8n")
