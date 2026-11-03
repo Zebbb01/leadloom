@@ -314,9 +314,11 @@ resource "azurerm_container_app_job" "n8n_setup" {
   resource_group_name          = azurerm_resource_group.main.name
   container_app_environment_id = local.environment_id
   workload_profile_name        = "Consumption"
-  replica_timeout_in_seconds   = 600
-  replica_retry_limit          = 1
-  tags                         = local.tags
+  # A fresh n8n database takes several minutes of migrations when the database
+  # is far away (Supabase in another region); later runs take about a minute.
+  replica_timeout_in_seconds = 1800
+  replica_retry_limit        = 1
+  tags                       = local.tags
 
   manual_trigger_config {
     parallelism              = 1
