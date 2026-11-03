@@ -189,3 +189,17 @@ def test_audit_log_is_append_only(db):
     lead_id, _ = pipeline.store(db, lead())
     with db.connection() as c, pytest.raises(psycopg.errors.RaiseException):
         c.execute("update audit set action = 'edited' where lead_id = %s", (lead_id,))
+
+
+def test_record_links_open_in_the_account_data_centre():
+    from app.hubspot import app_host, record_url
+
+    assert [app_host(t) for t in ("pat-na1-x", "pat-na2-x", "pat-eu1-x", "test")] == [
+        "app.hubspot.com",
+        "app-na2.hubspot.com",
+        "app-eu1.hubspot.com",
+        "app.hubspot.com",
+    ]
+    assert (
+        record_url("42", "deal", "7", "app-na2.hubspot.com") == "https://app-na2.hubspot.com/contacts/42/record/0-3/7"
+    )

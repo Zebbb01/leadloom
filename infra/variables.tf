@@ -4,6 +4,15 @@ variable "location" {
   default     = "southeastasia"
 }
 
+variable "shared_environment" {
+  description = "An existing Container Apps environment to join, as { name, resource_group }; its region must match location. A Free Trial subscription allows one environment, so set this when another app (LedgerLens) already has it. Null creates a new environment."
+  type = object({
+    name           = string
+    resource_group = string
+  })
+  default = null
+}
+
 variable "name_prefix" {
   description = "Prefix for resource names; a random suffix keeps global names unique."
   type        = string

@@ -4,6 +4,10 @@
 # not created here: it is Supabase's free PostgreSQL, or the free PostgreSQL
 # Flexible Server that ReplyPilot creates (Azure allows one free server per
 # subscription, so this configuration never makes a second one).
+#
+# A Free Trial subscription also allows only one Container Apps environment, so
+# with `shared_environment` set the apps join an existing one (LedgerLens's)
+# instead of creating their own.
 
 terraform {
   required_version = ">= 1.6"
@@ -70,8 +74,8 @@ locals {
   tags     = { app = "leadloom", cost = "free-tier" }
   api_name = "ca-${local.name}-api"
   n8n_name = "ca-${local.name}-n8n"
-  api_url  = "https://${local.api_name}.${azurerm_container_app_environment.main.default_domain}"
-  n8n_host = "${local.n8n_name}.${azurerm_container_app_environment.main.default_domain}"
+  api_url  = "https://${local.api_name}.${local.environment_domain}"
+  n8n_host = "${local.n8n_name}.${local.environment_domain}"
 
   # Supabase's pooler presents a certificate from Supabase's own CA, so the
   # connection is encrypted without verifying it; Azure's servers verify against
@@ -146,7 +150,14 @@ resource "azurerm_resource_group" "main" {
   tags     = local.tags
 }
 
+data "azurerm_container_app_environment" "shared" {
+  count               = var.shared_environment == null ? 0 : 1
+  name                = var.shared_environment.name
+  resource_group_name = var.shared_environment.resource_group
+}
+
 resource "azurerm_log_analytics_workspace" "main" {
+  count               = var.shared_environment == null ? 1 : 0
   name                = "log-${local.name}"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
@@ -157,10 +168,11 @@ resource "azurerm_log_analytics_workspace" "main" {
 }
 
 resource "azurerm_container_app_environment" "main" {
+  count                      = var.shared_environment == null ? 1 : 0
   name                       = "cae-${local.name}"
   location                   = azurerm_resource_group.main.location
   resource_group_name        = azurerm_resource_group.main.name
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main[0].id
   logs_destination           = "log-analytics"
   tags                       = local.tags
 
@@ -172,10 +184,15 @@ resource "azurerm_container_app_environment" "main" {
   }
 }
 
+locals {
+  environment_id     = var.shared_environment == null ? azurerm_container_app_environment.main[0].id : data.azurerm_container_app_environment.shared[0].id
+  environment_domain = var.shared_environment == null ? azurerm_container_app_environment.main[0].default_domain : data.azurerm_container_app_environment.shared[0].default_domain
+}
+
 # The API and review pages: one small replica at most, none when idle.
 resource "azurerm_container_app" "api" {
   name                         = local.api_name
-  container_app_environment_id = azurerm_container_app_environment.main.id
+  container_app_environment_id = local.environment_id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
   workload_profile_name        = "Consumption"
@@ -234,7 +251,7 @@ resource "azurerm_container_app" "api" {
 # spell wakes it, and its waiting review runs live in the database.
 resource "azurerm_container_app" "n8n" {
   name                         = local.n8n_name
-  container_app_environment_id = azurerm_container_app_environment.main.id
+  container_app_environment_id = local.environment_id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
   workload_profile_name        = "Consumption"
@@ -295,7 +312,7 @@ resource "azurerm_container_app_job" "n8n_setup" {
   name                         = "caj-${local.name}-n8n-setup"
   location                     = azurerm_resource_group.main.location
   resource_group_name          = azurerm_resource_group.main.name
-  container_app_environment_id = azurerm_container_app_environment.main.id
+  container_app_environment_id = local.environment_id
   workload_profile_name        = "Consumption"
   replica_timeout_in_seconds   = 600
   replica_retry_limit          = 1
@@ -363,6 +380,15 @@ resource "azurerm_federated_identity_credential" "github_main" {
 
 resource "azurerm_role_assignment" "deploy" {
   scope                = azurerm_resource_group.main.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+# Updating an app re-checks that it may join its environment, which lives in
+# another resource group when it is shared.
+resource "azurerm_role_assignment" "deploy_environment" {
+  count                = var.shared_environment == null ? 0 : 1
+  scope                = local.environment_id
   role_definition_name = "Contributor"
   principal_id         = azurerm_user_assigned_identity.deploy.principal_id
 }

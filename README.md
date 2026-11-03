@@ -127,7 +127,7 @@ sent three of the four reviewed leads to a person.
 
 ## Measured so far
 
-- **Tests:** 75 unit tests and 8 end-to-end tests pass, the end-to-end ones against the real n8n workflow.
+- **Tests:** 76 unit tests and 8 end-to-end tests pass, the end-to-end ones against the real n8n workflow.
 - **Orchestration overhead,** on a Windows laptop with the local stand-ins for the model and HubSpot (20 form
   leads): n8n answered the webhook in 84 ms (median; slowest 417 ms), and each lead was synced 0.19 s after
   its webhook (median; slowest 0.64 s). Real runs add the model call and up to eight HubSpot calls.
@@ -136,7 +136,7 @@ sent three of the four reviewed leads to a person.
 
 | Service | Free allowance | How LeadLoom stays inside it |
 | --- | --- | --- |
-| Container Apps (consumption) | 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests a month | Both apps scale to zero; the API uses 0.25 vCPU and 0.5 GiB, n8n 0.5 vCPU and 1 GiB; the setup job runs once per deploy |
+| Container Apps (consumption) | 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests a month | Both apps scale to zero; the API uses 0.25 vCPU and 0.5 GiB, n8n 0.5 vCPU and 1 GiB; the setup job runs once per deploy. A Free Trial allows one Container Apps environment, so LeadLoom shares LedgerLens's |
 | Log Analytics | 5 GB of ingestion a month | Daily cap of 0.05 GB |
 | Supabase | Free plan (two active projects, 500 MB database) | One database with two schemas; n8n prunes executions after 14 days |
 | Gemini API | Free tier, rate-limited per day | At most 200 model calls a day; one call per lead; spam rules skip the model |
@@ -173,7 +173,7 @@ workflow do not depend on the CRM. A GoHighLevel version would map like this (no
 | Model | OpenAI-compatible chat completions with a strict JSON schema (no SDK); Gemini API free tier by default |
 | Data | PostgreSQL: one row per delivery, durable steps, an append-only audit log enforced by a trigger, advisory locks per lead |
 | Integrations | HubSpot CRM v3/v4 (search, upsert, deals, notes, associations), Slack incoming webhook, Postmark inbound, Cal.com webhooks |
-| Infrastructure | Terraform (azurerm 4): two Container Apps and a Container Apps job, Log Analytics, budget alert; Supabase or ReplyPilot's server for PostgreSQL |
+| Infrastructure | Terraform (azurerm 4): two Container Apps and a Container Apps job in a new or shared environment, Log Analytics, budget alert; Supabase or ReplyPilot's server for PostgreSQL |
 | CI/CD | GitHub Actions: ruff, mypy, pytest, Playwright, Terraform validate, both image builds; deploy to GHCR and Container Apps over OpenID Connect |
 | Tests | pytest against a real embedded PostgreSQL (pgserver) and mocks of the model, HubSpot and Slack; Playwright through the real n8n workflow |
 
@@ -195,7 +195,7 @@ password `LeadLoom-local-1`); the first run downloads n8n through npx. To use a 
 ## Tests
 
 ```bash
-uv run pytest       # 75 unit tests: intake and signatures, enrichment and SSRF guards, scoring rules,
+uv run pytest       # 76 unit tests: intake and signatures, enrichment and SSRF guards, scoring rules,
                     # LLM schema and retries, dedupe, durable steps, HubSpot sync, review flow, eval grader
 npm run test:e2e    # 8 Playwright tests: starts the whole local stack, n8n included
 ```

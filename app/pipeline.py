@@ -380,7 +380,7 @@ def push(db: Pool, s: Settings, lead_id: str, lead: Lead, d: dict, crm: httpx.Cl
         ),
     )
     urls = {
-        kind: hubspot.record_url(s.hubspot_portal_id, kind, rid)
+        kind: hubspot.record_url(s.hubspot_portal_id, kind, rid, hubspot.app_host(s.hubspot_token))
         for kind, rid in (("contact", contact_id), ("company", company_id), ("deal", deal.get("id")))
     }
     return {
