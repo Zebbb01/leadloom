@@ -179,7 +179,7 @@ workflow do not depend on the CRM. A GoHighLevel version would map like this (no
 | Part | Choice |
 | --- | --- |
 | Workflow | n8n 2.45 (self-hosted): Webhook, HTTP Request, IF, Switch, Wait and Respond to Webhook nodes; workflow as committed JSON |
-| Service | Python 3.12, FastAPI, Pydantic, httpx, psycopg 3 with a connection pool, Jinja2 pages with plain CSS |
+| Service | Python 3.12, FastAPI, Pydantic, httpx, psycopg 3 with a connection pool; Jinja2 pages with plain CSS, self-hosted IBM Plex, and a small script for busy states, confirmations and progress polling (the pages work without it) |
 | Model | OpenAI-compatible chat completions with a strict JSON schema (no SDK); Gemini API free tier by default |
 | Data | PostgreSQL: one row per delivery, durable steps, an append-only audit log enforced by a trigger, advisory locks per lead |
 | Integrations | HubSpot CRM v3/v4 (search, upsert, deals, notes, associations), Slack incoming webhook, Postmark inbound, Cal.com webhooks |
