@@ -1,49 +1,55 @@
 {% extends "base.html" %}
 {% block title %}Leads · LeadLoom{% endblock %}
 {% block main %}
-<div class="stack-lg">
-  <div class="stack">
+<div class="page-head">
+  <div>
     <h1>Leads</h1>
-    <p class="muted">
-      {% if reviewer %}Every lead, live and demo. Leads waiting for a person come first.
-      {% else %}The samples this browser sent. <a href="/signin">Reviewers sign in</a> to see live leads.{% endif %}
-    </p>
+    <p class="small muted">{% if reviewer %}Every lead, live and demo.{% else %}The samples this browser sent.
+      <a href="/signin">Sign in</a> to see live leads.{% endif %}</p>
   </div>
-  {% if rows %}
-  <div class="table-wrap">
-    <table class="stacked">
-      <thead>
-        <tr>
-          <th>Lead</th><th>Channel</th><th class="num">Score</th><th>Route</th><th>Status</th><th class="num">Model cost</th><th>Received</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in rows %}
-        {% set d = r.decision %}
-        <tr {% if r.status == 'awaiting_review' %}class="needs-review"{% endif %}>
-          <td class="wide">
-            <a href="/leads/{{ r.id }}"><strong>{{ r.lead.name or r.email }}</strong></a>
-            <div class="small muted">{{ r.lead.company or r.email }}{% if r.workspace and reviewer %} · demo{% endif %}</div>
-          </td>
-          <td class="small">{{ channel_names[r.source] }}</td>
-          <td class="num">
-            {% if d %}{{ d.score }} <span class="badge tier-{{ d.tier }}">{{ d.tier }}</span>{% else %}<span class="muted">…</span>{% endif %}
-          </td>
-          <td class="small">{{ d.route if d else '' }}</td>
-          <td><span class="badge status-{{ r.status }}">{{ status_names[r.status] }}</span></td>
-          <td class="num small mono">{{ r.cost | usd }}</td>
-          <td class="small muted">{{ r.created_at | when }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="panel stack">
-    <h2>No leads yet</h2>
-    <p class="muted">Send a sample lead through n8n and it shows up here within a few seconds.</p>
-    <div><a class="btn btn-primary" href="/#try">Send a sample lead</a></div>
-  </div>
-  {% endif %}
+  <a class="btn btn-sm" href="/">Send a sample</a>
 </div>
+<nav class="tabs" aria-label="Filter leads">
+  {% for key, name in [('all', 'All'), ('review', 'Needs review'), ('synced', 'Synced'), ('closed', 'Closed')] %}
+  <a href="/leads{% if key != 'all' %}?view={{ key }}{% endif %}" {% if view == key %}aria-current="page"{% endif %}>{{ name }} <span class="count">{{ counts[key] }}</span></a>
+  {% endfor %}
+</nav>
+{% if rows %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Lead</th><th>Channel</th><th class="r">Score</th><th>Route</th><th>Status</th><th class="r">Model cost</th><th class="r">Received</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      {% set d = r.decision %}
+      <tr>
+        <td>
+          <a class="row-link" href="/leads/{{ r.id }}">{{ r.lead.name or r.email }}</a>
+          <div class="small muted">{{ r.lead.company or r.email }}{% if r.workspace and reviewer %} · demo{% endif %}</div>
+        </td>
+        <td class="hide-sm"><span class="chan"><svg class="icon"><use href="#i-{{ r.source }}"/></svg>{{ channel_names[r.source] }}</span></td>
+        <td class="r num">{% if d %}<span class="badge tier-{{ d.tier }}">{{ d.score }} · {{ d.tier }}</span>{% else %}<span class="muted">…</span>{% endif %}</td>
+        <td class="hide-sm">{{ d.route if d else '' }}</td>
+        <td><span class="badge status-{{ r.status }}">{{ status_names[r.status] }}</span></td>
+        <td class="r num mono small hide-sm">{{ r.cost | usd }}</td>
+        <td class="r small muted hide-sm" title="{{ r.created_at | when }}">{{ r.created_at | ago }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif counts['all'] %}
+<div class="empty">
+  <h2>Nothing here</h2>
+  <p class="muted">No lead matches this filter.</p>
+  <a class="btn btn-sm" href="/leads">Show all leads</a>
+</div>
+{% else %}
+<div class="empty">
+  <h2>No leads yet</h2>
+  <p class="muted">Send a sample through n8n and it shows up here.</p>
+  <a class="btn btn-primary btn-sm" href="/">Send a sample lead</a>
+</div>
+{% endif %}
 {% endblock %}

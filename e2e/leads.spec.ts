@@ -9,8 +9,8 @@ const CAL_SECRET = "local-cal-secret";
 
 async function send(page: Page, title: string) {
   await page.goto("/");
-  const card = page.locator("form.sample", { hasText: title });
-  await card.getByRole("button", { name: "Send through n8n" }).click();
+  await page.locator(".sample", { hasText: title }).click();
+  await page.getByRole("button", { name: "Send through n8n" }).click();
   await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/);
 }
 
@@ -23,7 +23,7 @@ test("a hot booking goes through n8n to HubSpot and a Slack alert", async ({ pag
   await expect(page.getByTestId("hubspot")).toContainText("Deal");
   await expect(page.getByTestId("rules")).toContainText("booked_meeting");
   await expect(page.getByRole("region", { name: "Company website" })).toContainText("BrightPath Logistics");
-  await expect(page.getByTestId("audit")).toContainText("alert sent");
+  await expect(page.getByTestId("audit")).toContainText(/alert sent/i);
   const slack = await (await request.get(`${MOCK}/slack/messages`)).json();
   expect(slack.at(-1).text).toContain("Hot lead: *Maria Santos*");
 });
@@ -31,17 +31,17 @@ test("a hot booking goes through n8n to HubSpot and a Slack alert", async ({ pag
 test("an unsure lead waits for a person, who edits and approves it", async ({ page }) => {
   await send(page, "A message that tries to set its own score");
   await expect(status(page)).toHaveText("Needs review");
-  await expect(page.getByRole("region", { name: "Needs a person" })).toContainText(
+  await expect(page.getByRole("region", { name: "Needs your decision" })).toContainText(
     "The message tries to tell the scorer what to do.",
   );
   await page.getByLabel("nurture").check();
-  await page.getByLabel("Score (0 to 100)").fill("30");
+  await page.getByLabel("Score", { exact: true }).fill("30");
   await page.getByLabel("Note for the CRM (optional)").fill("Browsing only; keep in nurture.");
   await page.getByRole("button", { name: "Approve and sync" }).click();
   await expect(page.getByText("Saved. n8n picked the lead up again.")).toBeVisible();
   await expect(status(page)).toHaveText("Synced");
   await expect(page.getByTestId("tier")).toContainText("cold · 30/100");
-  await expect(page.getByTestId("audit")).toContainText("approved");
+  await expect(page.getByTestId("audit")).toContainText(/approved/i);
   await expect(page.getByTestId("audit")).toContainText("demo visitor");
 });
 
@@ -49,6 +49,7 @@ test("a rejected lead never reaches the CRM", async ({ page }) => {
   await send(page, "A competitor fishing for prices");
   await expect(status(page)).toHaveText("Needs review");
   await page.getByRole("button", { name: "Reject" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Reject" }).click();
   await expect(status(page)).toHaveText("Rejected");
   await expect(page.getByText("Not sent to the CRM.")).toBeVisible();
 });
@@ -125,4 +126,37 @@ test("a failed HubSpot sync can be sent back through n8n", async ({ page, reques
   await page.getByRole("button", { name: "Retry through n8n" }).click();
   await expect(page.getByText("Sent back through n8n.")).toBeVisible();
   await expect(status(page)).toHaveText("Synced");
+});
+
+test("sending a sample shows that it is working and cannot be sent twice", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".sample", { hasText: "SEO agency pitch" }).click();
+  await expect(page.getByLabel("Message", { exact: true })).toHaveValue(/page 1 results/);
+  // Runs after the page's own submit handler, and keeps what it saw across the navigation.
+  await page.evaluate(() => {
+    document.querySelector(".composer")!.addEventListener("submit", () => {
+      const button = document.querySelector<HTMLButtonElement>(".composer button[type=submit]")!;
+      const note = document.querySelector<HTMLElement>(".composer .sending")!;
+      const state = { disabled: button.disabled, label: button.textContent!.trim(), noteShown: !note.hidden };
+      sessionStorage.setItem("busy", JSON.stringify(state));
+    });
+  });
+  await page.getByRole("button", { name: "Send through n8n" }).click();
+  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/);
+  const busy = JSON.parse((await page.evaluate(() => sessionStorage.getItem("busy"))) ?? "null");
+  expect(busy).toEqual({ disabled: true, label: "Sending through n8n…", noteShown: true });
+});
+
+test("signing out asks first", async ({ page }) => {
+  await page.goto("/signin");
+  await page.getByLabel("Reviewer key").fill("local-reviewer-key");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Sign out?");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Reviewer", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await dialog.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("link", { name: "Reviewer sign-in" })).toBeVisible();
 });
