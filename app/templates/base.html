@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LeadLoom{% endblock %}</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/"><img src="/static/icon.svg" alt="" width="24" height="24"> LeadLoom</a>
+    <nav aria-label="Main">
+      <a href="/leads" {% if request.url.path.startswith('/leads') %}aria-current="page"{% endif %}>Leads</a>
+      <a href="/#try">Try it</a>
+      {% if reviewer %}
+      <form method="post" action="/signout"><button class="link" type="submit">Sign out</button></form>
+      {% else %}
+      <a href="/signin" {% if request.url.path == '/signin' %}aria-current="page"{% endif %}>Reviewer sign-in</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>{% block main %}{% endblock %}</main>
+  <footer>
+    LeadLoom is a portfolio system: n8n workflows with a Python service, on Azure's free tier.
+    The sample companies are fictional. <a href="https://github.com/Zebbb01/leadloom">Source on GitHub</a>.
+  </footer>
+</body>
+</html>

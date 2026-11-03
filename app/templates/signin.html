@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Reviewer sign-in · LeadLoom{% endblock %}
+{% block main %}
+<div class="panel stack" style="max-width: 420px">
+  <h1>Reviewer sign-in</h1>
+  <p class="muted">Reviewers see and decide every lead, including live ones from the real form, inbox and calendar.
+    Demo visitors see only the samples they sent.</p>
+  {% if error %}<p class="flash flash-bad" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/signin" class="stack">
+    <div>
+      <label for="key">Reviewer key</label>
+      <input id="key" name="key" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn-primary" type="submit">Sign in</button>
+  </form>
+</div>
+{% endblock %}

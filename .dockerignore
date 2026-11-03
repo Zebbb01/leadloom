@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+.data
+.dev.log
+node_modules
+test-results
+playwright-report
+tests
+e2e
+infra
+docs
+evals
+n8n
+**/__pycache__
+*.md
+.env*
