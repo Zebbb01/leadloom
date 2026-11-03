@@ -8,11 +8,11 @@ Everything below stays within free tiers. Allow about 45 minutes, most of it cre
 
 | Resource | Tier |
 | --- | --- |
-| Container Apps environment | Consumption (monthly free grant) |
+| Container Apps environment, unless an existing one is shared (see below) | Consumption (monthly free grant) |
 | Container App `api` (FastAPI, 0 to 1 replica of 0.25 vCPU / 0.5 GiB) | Consumption |
 | Container App `n8n` (0 to 1 replica of 0.5 vCPU / 1 GiB) | Consumption |
 | Container Apps job `n8n-setup`, run once per deploy to import and publish the workflows | Consumption |
-| Log Analytics workspace | Pay-as-you-go with a 0.05 GB daily cap (under the 5 GB free) |
+| Log Analytics workspace, with the environment | Pay-as-you-go with a 0.05 GB daily cap (under the 5 GB free) |
 | A managed identity for GitHub Actions and its role assignment | Free |
 | Optional: a 1-unit monthly budget that emails you at the first cent of cost | Free |
 
@@ -30,6 +30,11 @@ and `n8n`:
   pay-as-you-go to keep them running; run `terraform destroy` or let it lapse.
 - The Container Apps and Log Analytics allowances are shared with any other app in the subscription (such as
   LedgerLens). All of them scale to zero, so together they stay well inside the grants.
+- **A Free Trial subscription allows one Container Apps environment.** If another app already has it (LedgerLens
+  does), add `-var 'shared_environment={name="cae-ledgerlens-xxxxxx", resource_group="rg-ledgerlens-xxxxxx"}'`
+  to the apply and keep `location` in that environment's region (`az containerapp env list` shows both).
+  LeadLoom's apps then join it, its logs go to that environment's workspace, and the GitHub deploy identity
+  also gets Contributor on that environment so it can update its apps there.
 
 ## 1. Publish the images
 
@@ -54,8 +59,8 @@ and `n8n`:
 **Supabase (default).** At [supabase.com](https://supabase.com), create a project in an organization on the
 **Free** plan (a project in a paid organization is billed; the Free plan allows two active projects). Keep
 the database and the apps in one part of the world, since every request makes several database round trips:
-a Singapore project pairs with the default `location` (`southeastasia`), an Ireland project (`eu-west-1`) with
-`-var location=northeurope`. Then open **Connect** → **Session pooler** and note:
+pick Singapore to match the default `location` (`southeastasia`). A project elsewhere still works, more
+slowly. Then open **Connect** → **Session pooler** and note:
 
 | Terraform variable | Value |
 | --- | --- |
@@ -119,7 +124,7 @@ terraform apply \
   -var 'hubspot_portal_id=12345678' \
   -var 'slack_webhook_url=https://hooks.slack.com/services/...' \
   -var 'n8n_owner_email=you@example.com' \
-  -var 'alert_email=you@example.com'
+  -var 'alert_email=you@example.com'   -var 'shared_environment={name="cae-ledgerlens-xxxxxx", resource_group="rg-ledgerlens-xxxxxx"}'   # Free Trial: only if LedgerLens is deployed
 ```
 
 Keep the Terraform state (`terraform.tfstate`): it holds the generated keys and is how you update or remove
