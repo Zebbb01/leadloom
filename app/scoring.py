@@ -16,7 +16,7 @@ NO_CRM: frozenset[str] = frozenset({"spam", "recruiting"})
 HOT, WARM = 75, 50
 MIN_CONFIDENCE = 0.6
 # Fictional competitors of the fictional seller.
-COMPETITORS = frozenset({"routewise.example", "fleetpilot.example", "dispatchly.example"})
+COMPETITORS = frozenset({"routewise.example.com", "fleetpilot.example.com", "dispatchly.example.com"})
 INJECTION_RE = re.compile(
     r"ignore (all |any |the )?(previous|prior|above|earlier)|disregard (all|any|the|previous)|system prompt"
     r"|you are now|set (the |my |our )?(score|priority|tier)"

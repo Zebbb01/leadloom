@@ -104,11 +104,11 @@ def create_mock() -> FastAPI:
         state["objects"]["contacts"]["901"] = {
             "id": "901",
             "properties": {
-                "email": "grace@greenline-grocers.example",
+                "email": "grace@greenline-grocers.example.com",
                 "firstname": "Grace",
                 "lastname": "Mendoza",
                 "lifecyclestage": "customer",
-                "hs_email_domain": "greenline-grocers.example",
+                "hs_email_domain": "greenline-grocers.example.com",
             },
         }
 

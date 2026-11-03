@@ -116,10 +116,10 @@ LLM_API_KEY=<Gemini API key> uv run python -m scripts.eval   # writes evals/late
 | Leads ending with an allowed route, tier and review outcome | 24 / 24 |
 | Model calls | 22 (the honeypot hit and the throwaway address never reach the model) |
 | Schema failures or model errors | 0 |
-| Tokens per scored lead | 776 on average |
+| Tokens per scored lead | 780 on average |
 | Cost per scored lead at list price | $0.00052 (free on the free tier) |
-| Model call time | 1.3 s median, 18.9 s slowest |
-| Sent to a person | 4: the prompt injection, the duplicate, the competitor (rules) and the two-word message (model confidence 0.40) |
+| Model call time | 1.5 s median, 34.1 s slowest |
+| Sent to a person | 4: the prompt injection, the duplicate, the competitor (rules) and the two-word message (model confidence 0.50) |
 
 The rules did not change a route on this set; the model already routed every lead acceptably. They capped one
 lead's fit (a personal address with no company website), marked two leads as spam without a model call, and

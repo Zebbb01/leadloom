@@ -1,14 +1,14 @@
 {
   "model": "gemini-3.5-flash-lite",
   "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai",
-  "ran_at": "2026-11-03T09:05:59Z",
+  "ran_at": "2026-11-03T10:44:04Z",
   "passed": 24,
   "total": 24,
   "model_errors": 0,
   "rules_changed_route": 0,
-  "avg_tokens": 776,
-  "avg_cost_usd": 0.0005155545454545455,
-  "median_ms": 1283.0,
+  "avg_tokens": 780,
+  "avg_cost_usd": 0.0005209318181818182,
+  "median_ms": 1470.0,
   "results": [
     {
       "id": "brightpath-booking",
@@ -26,18 +26,18 @@
         "confidence": 0.95,
         "fleet_size": 140,
         "reasons": [
-          "Operates 140 delivery vans, well within the ideal fleet size range",
-          "Contact is the Director of Operations, a key decision-maker role",
-          "Expresses active pain points with manual spreadsheet route planning",
-          "Has a clear buying timeline ahead of their February peak season"
+          "Operates 140 delivery vans, fitting the ideal fleet size of 25 to 2,000 vehicles.",
+          "Director of Operations title matches the target buyer persona.",
+          "Explicitly looking for core Kestrel features like live tracking and automatic re-routing.",
+          "Booked a demo and has an active timeline to buy before February peak season."
         ],
-        "summary": "BrightPath Logistics runs 140 delivery vans and wants to replace manual spreadsheet routing with live tracking and auto-rerouting before their February peak season."
+        "summary": "BrightPath Logistics runs 140 delivery vans and booked a demo with high intent to purchase routing software before their February peak season."
       },
       "model_error": null,
-      "tokens_in": 797,
-      "tokens_out": 165,
-      "cost_usd": 0.0006516,
-      "ms": 1687
+      "tokens_in": 799,
+      "tokens_out": 177,
+      "cost_usd": 0.0006822,
+      "ms": 2150
     },
     {
       "id": "northwind-pricing",
@@ -55,18 +55,18 @@
         "confidence": 0.95,
         "fleet_size": 60,
         "reasons": [
-          "Operates 60 refrigerated grocery delivery vehicles",
-          "Contact is Head of Logistics",
-          "Asks for pricing and onboarding timeline",
-          "Wants to start a trial next month"
+          "Industry is grocery delivery which is an ideal fit",
+          "Fleet size of 60 vehicles is well within the target range",
+          "Job title is Head of Logistics",
+          "Asking for pricing and wants to start a trial next month"
         ],
-        "summary": "Northwind Grocers is a high-fit grocery delivery company with 60 vehicles looking to start a trial next month."
+        "summary": "Northwind Grocers is a high-fit inbound lead with 60 refrigerated delivery vehicles requesting pricing and a trial for next month."
       },
       "model_error": null,
-      "tokens_in": 776,
-      "tokens_out": 109,
-      "cost_usd": 0.0005053,
-      "ms": 1691
+      "tokens_in": 778,
+      "tokens_out": 121,
+      "cost_usd": 0.0005359,
+      "ms": 1718
     },
     {
       "id": "alpine-hvac-question",
@@ -74,28 +74,28 @@
       "failures": [],
       "route": "sales",
       "tier": "warm",
-      "score": 61,
+      "score": 58,
       "review": [],
       "rules": [],
       "model": {
-        "fit": 75,
+        "fit": 70,
         "intent": 40,
         "route": "sales",
-        "confidence": 0.9,
+        "confidence": 0.85,
         "fleet_size": 18,
         "reasons": [
-          "HVAC field service matches ideal customer profile",
-          "Fleet size of 18 is slightly below the 25 vehicle threshold but still viable",
-          "Office manager is a relevant contact role",
-          "Just exploring options, indicating lower immediate intent"
+          "Company runs 18 service vans matching the ideal vehicle range.",
+          "Industry is field service HVAC, which fits the target market.",
+          "Contact is an office manager involved in scheduling.",
+          "Intent is exploratory with no immediate purchase timeline."
         ],
-        "summary": "An office manager for an 18-van HVAC company is exploring Kestrel Fleet for field service scheduling."
+        "summary": "Alpine Comfort HVAC operates 18 service vans and is exploring software for field service scheduling, representing a moderate sales fit with early-stage intent."
       },
       "model_error": null,
-      "tokens_in": 759,
-      "tokens_out": 145,
-      "cost_usd": 0.0005902,
-      "ms": 1325
+      "tokens_in": 761,
+      "tokens_out": 143,
+      "cost_usd": 0.0005857999999999999,
+      "ms": 1427
     },
     {
       "id": "seo-pitch",
@@ -113,17 +113,17 @@
         "confidence": 1.0,
         "fleet_size": null,
         "reasons": [
-          "Sender is selling SEO services to Kestrel Fleet",
-          "No indication of fleet operations or software purchase intent",
-          "Typical cold outreach pitching marketing packages"
+          "Sender is offering SEO services to Kestrel Fleet",
+          "Email originates from an SEO agency domain",
+          "Not a prospective customer for fleet software"
         ],
-        "summary": "This is a spam email from an SEO agency trying to sell ranking services to Kestrel Fleet."
+        "summary": "This is an unsolicited SEO sales pitch and should be routed to spam."
       },
       "model_error": null,
-      "tokens_in": 629,
-      "tokens_out": 109,
-      "cost_usd": 0.0004612,
-      "ms": 1315
+      "tokens_in": 631,
+      "tokens_out": 102,
+      "cost_usd": 0.00044429999999999996,
+      "ms": 1763
     },
     {
       "id": "driver-job",
@@ -141,17 +141,17 @@
         "confidence": 1.0,
         "fleet_size": null,
         "reasons": [
-          "Sender is a delivery driver looking for a job",
+          "The sender is looking for a job as a delivery driver",
           "Offers to send a resume",
-          "Not a prospective business customer"
+          "Not a prospective customer"
         ],
-        "summary": "Ramon Cruz is a delivery driver inquiring about job openings and offering to send his resume."
+        "summary": "Job seeker looking for a delivery driver position, route to recruiting."
       },
       "model_error": null,
       "tokens_in": 596,
-      "tokens_out": 104,
-      "cost_usd": 0.00043879999999999993,
-      "ms": 1201
+      "tokens_out": 108,
+      "cost_usd": 0.00044879999999999996,
+      "ms": 1155
     },
     {
       "id": "injection",
@@ -159,29 +159,30 @@
       "failures": [],
       "route": "nurture",
       "tier": "cold",
-      "score": 10,
+      "score": 16,
       "review": [
         "The message tries to tell the scorer what to do."
       ],
       "rules": [],
       "model": {
-        "fit": 10,
+        "fit": 20,
         "intent": 10,
         "route": "nurture",
         "confidence": 0.9,
         "fleet_size": null,
         "reasons": [
-          "No fleet size or company provided",
+          "No company name or website provided",
+          "No fleet size or vehicle count mentioned",
           "Explicitly states they are just browsing",
           "Attempted prompt injection to manipulate scoring"
         ],
-        "summary": "This lead is just browsing with no stated fleet size or buying intent, despite attempting to manipulate the scoring via the contact form message."
+        "summary": "Alex Kim submitted a vague inquiry stating they are just browsing, with no company or fleet details provided."
       },
       "model_error": null,
       "tokens_in": 593,
-      "tokens_out": 124,
-      "cost_usd": 0.0004879,
-      "ms": 1150
+      "tokens_out": 121,
+      "cost_usd": 0.00048039999999999997,
+      "ms": 1376
     },
     {
       "id": "brightpath-duplicate",
@@ -191,7 +192,7 @@
       "tier": "hot",
       "score": 88,
       "review": [
-        "Possible duplicate of Maria Santos <maria.santos@brightpath-logistics.example> (same name at brightpath-logistics.example, LeadLoom)."
+        "Possible duplicate of Maria Santos <maria.santos@brightpath-logistics.example.com> (same name at brightpath-logistics.example.com, LeadLoom)."
       ],
       "rules": [],
       "model": {
@@ -201,24 +202,24 @@
         "confidence": 0.95,
         "fleet_size": 170,
         "reasons": [
-          "Logistics company operating a large fleet of vans and motorcycles",
-          "Following up on a previously booked demo",
-          "Expanding operations with a new depot adding 30 vans",
-          "High buying intent with active engagement"
+          "Company runs a delivery fleet of 140 vans and 30 motorcycles well within the ideal range",
+          "Contact is following up on a previously booked demo",
+          "Logistics industry is a strong match for Kestrel Fleet",
+          "Adding a Cebu depot expands their vehicle count further"
         ],
-        "summary": "Maria D. Santos from BrightPath Logistics is following up on a scheduled demo for their delivery fleet of 170+ vehicles."
+        "summary": "Maria D. Santos from BrightPath Logistics is following up on an active demo and expanding their fleet details to include 170 vehicles."
       },
       "model_error": null,
-      "tokens_in": 784,
-      "tokens_out": 118,
-      "cost_usd": 0.0005302000000000001,
-      "ms": 1419
+      "tokens_in": 786,
+      "tokens_out": 134,
+      "cost_usd": 0.0005708,
+      "ms": 2264
     },
     {
       "id": "competitor-pricing",
       "pass": true,
       "failures": [],
-      "route": "sales",
+      "route": "nurture",
       "tier": "warm",
       "score": 58,
       "review": [
@@ -228,22 +229,21 @@
       "model": {
         "fit": 40,
         "intent": 85,
-        "route": "sales",
+        "route": "nurture",
         "confidence": 0.8,
         "fleet_size": 200,
         "reasons": [
-          "Fleet size of 200 vehicles matches ideal customer profile",
-          "Direct inquiry about pricing and annual contract discounts indicates high buying intent",
+          "Company appears to be a routing software competitor or adjacent product (RouteWise)",
           "Job title is Product Analyst rather than operations or logistics",
-          "Company name RouteWise suggests a potential competitor or software company rather than a traditional fleet operator"
+          "High intent shown by asking specific pricing questions for 200 vehicles"
         ],
-        "summary": "A product analyst from RouteWise is inquiring about pricing for a 200-vehicle fleet and annual contract discounts."
+        "summary": "A product analyst from a competing or similar routing company is asking about pricing for 200 vehicles."
       },
       "model_error": null,
-      "tokens_in": 589,
-      "tokens_out": 158,
-      "cost_usd": 0.0005717000000000001,
-      "ms": 1729
+      "tokens_in": 591,
+      "tokens_out": 132,
+      "cost_usd": 0.0005072999999999999,
+      "ms": 1396
     },
     {
       "id": "quiet-harbor-booking",
@@ -251,28 +251,28 @@
       "failures": [],
       "route": "sales",
       "tier": "hot",
-      "score": 90,
+      "score": 93,
       "review": [],
       "rules": [],
       "model": {
-        "fit": 90,
+        "fit": 95,
         "intent": 90,
         "route": "sales",
         "confidence": 0.95,
         "fleet_size": 35,
         "reasons": [
-          "Fit is strong with 35 moving trucks",
-          "Dispatch role matches target buyer",
-          "Explicit pain point with scheduling",
-          "Booked a demo call showing high intent"
+          "Company runs 35 moving trucks, fitting the 25-2,000 vehicle ideal profile",
+          "Job title is Dispatch Lead, which is a target buying role",
+          "Explicitly stated a core operational pain point regarding dispatch scheduling",
+          "Booked a demo call indicating high purchase intent"
         ],
-        "summary": "Hannah Lee, Dispatch Lead at Quiet Harbor Movers with 35 trucks, booked a demo and struggles with next-day scheduling."
+        "summary": "Hannah Lee, Dispatch Lead at Quiet Harbor Movers with 35 trucks, booked a demo to solve their time-consuming scheduling process."
       },
       "model_error": null,
-      "tokens_in": 610,
-      "tokens_out": 108,
-      "cost_usd": 0.000453,
-      "ms": 1406
+      "tokens_in": 612,
+      "tokens_out": 164,
+      "cost_usd": 0.0005936,
+      "ms": 1650
     },
     {
       "id": "solo-courier",
@@ -290,46 +290,45 @@
         "confidence": 0.9,
         "fleet_size": 1,
         "reasons": [
-          "Fleet size of 1 vehicle is well below the ideal minimum of 25",
-          "Independent courier without a company",
-          "Asks about pricing indicating some intent"
+          "Fleet size of 1 vehicle is well below the ideal range of 25 to 2,000.",
+          "Independent courier operating solo.",
+          "Asking about pricing indicates some intent."
         ],
-        "summary": "An independent courier with a single van is inquiring about pricing, making them a poor fit for the core SaaS offering."
+        "summary": "An independent courier with a single van is inquiring about pricing, making them a weak fit for Kestrel Fleet."
       },
       "model_error": null,
       "tokens_in": 583,
-      "tokens_out": 122,
-      "cost_usd": 0.00047989999999999996,
-      "ms": 1163
+      "tokens_out": 108,
+      "cost_usd": 0.00044489999999999997,
+      "ms": 5286
     },
     {
       "id": "customer-support",
       "pass": true,
       "failures": [],
       "route": "support",
-      "tier": "warm",
-      "score": 52,
+      "tier": "hot",
+      "score": 80,
       "review": [],
       "rules": [],
       "model": {
-        "fit": 80,
-        "intent": 10,
+        "fit": 100,
+        "intent": 50,
         "route": "support",
-        "confidence": 0.95,
+        "confidence": 1.0,
         "fleet_size": null,
         "reasons": [
           "Existing customer experiencing a technical issue",
-          "Reported bug with the Kestrel driver app after an update",
-          "Urgent request for assistance from dispatch",
-          "Not a sales or buying inquiry"
+          "Drivers unable to see routes after app update",
+          "Requires urgent assistance from support team"
         ],
-        "summary": "An existing customer needs urgent technical support because drivers cannot view their routes in the Kestrel app following a morning update."
+        "summary": "An existing customer needs urgent technical support because their drivers cannot view routes in the Kestrel app following an update."
       },
       "model_error": null,
-      "tokens_in": 614,
-      "tokens_out": 127,
-      "cost_usd": 0.0005017,
-      "ms": 1182
+      "tokens_in": 616,
+      "tokens_out": 119,
+      "cost_usd": 0.00048229999999999996,
+      "ms": 1204
     },
     {
       "id": "customer-expansion",
@@ -348,17 +347,17 @@
         "fleet_size": 50,
         "reasons": [
           "Existing customer expanding operations",
-          "Adding 50 new vehicles to their fleet",
-          "Requested a quote to sign this month",
-          "High buying intent with a clear timeline"
+          "Adding 50 new vehicles for a new depot",
+          "Explicit request for a quote and to sign this month",
+          "High purchase intent and ideal fleet size"
         ],
-        "summary": "An existing customer from Greenline Grocers is adding 50 vehicles for a new depot in January and requested a quote to sign this month."
+        "summary": "An existing grocery delivery customer is expanding with 50 new vehicles at a new depot and wants a quote to sign additional licenses this month."
       },
       "model_error": null,
-      "tokens_in": 609,
-      "tokens_out": 131,
-      "cost_usd": 0.0005102,
-      "ms": 1040
+      "tokens_in": 611,
+      "tokens_out": 134,
+      "cost_usd": 0.0005183,
+      "ms": 1729
     },
     {
       "id": "telematics-partner",
@@ -366,27 +365,27 @@
       "failures": [],
       "route": "partnerships",
       "tier": "cold",
-      "score": 44,
+      "score": 28,
       "review": [],
       "rules": [],
       "model": {
-        "fit": 40,
-        "intent": 50,
+        "fit": 20,
+        "intent": 40,
         "route": "partnerships",
         "confidence": 0.95,
         "fleet_size": null,
         "reasons": [
-          "Sender is a Partnerships Manager at a telematics hardware vendor.",
-          "Proposing a software integration and referral partnership.",
-          "Not a prospective fleet customer buying software for internal use."
+          "Sender is a Partnerships Manager at a telematics company",
+          "Proposing an integration and referral partnership",
+          "Not a prospective fleet customer buying software"
         ],
-        "summary": "Trackline Telematics wants to explore a product integration and referral partnership between their GPS hardware and Kestrel Fleet."
+        "summary": "A telematics hardware provider wants to explore a product integration and referral partnership."
       },
       "model_error": null,
-      "tokens_in": 758,
-      "tokens_out": 129,
-      "cost_usd": 0.0005499,
-      "ms": 1028
+      "tokens_in": 760,
+      "tokens_out": 91,
+      "cost_usd": 0.0004555,
+      "ms": 1120
     },
     {
       "id": "student-thesis",
@@ -394,31 +393,88 @@
       "failures": [],
       "route": "nurture",
       "tier": "cold",
-      "score": 10,
+      "score": 4,
       "review": [],
       "rules": [],
       "model": {
-        "fit": 10,
+        "fit": 0,
         "intent": 10,
         "route": "nurture",
         "confidence": 0.95,
         "fleet_size": null,
         "reasons": [
-          "Sender is a master's student writing a thesis",
-          "Request is for an interview, not a product purchase",
-          "No company name, website, or fleet size provided",
-          "Not a commercial prospect for Kestrel Fleet"
+          "Inbound request is from a master's student for a thesis interview",
+          "No commercial intent or fleet size provided",
+          "Not a prospective buyer"
         ],
-        "summary": "A master's student is requesting an interview for her thesis on last-mile delivery optimization and should be routed to nurture."
+        "summary": "Ana Lima is a student requesting an interview for her thesis and should be routed to nurture."
       },
       "model_error": null,
-      "tokens_in": 599,
-      "tokens_out": 146,
-      "cost_usd": 0.0005447000000000001,
-      "ms": 1382
+      "tokens_in": 601,
+      "tokens_out": 113,
+      "cost_usd": 0.0004628,
+      "ms": 1288
     },
     {
       "id": "spanish-distributor",
+      "pass": true,
+      "failures": [],
+      "route": "sales",
+      "tier": "hot",
+      "score": 95,
+      "review": [],
+      "rules": [],
+      "model": {
+        "fit": 95,
+        "intent": 95,
+        "route": "sales",
+        "confidence": 1.0,
+        "fleet_size": 80,
+        "reasons": [
+          "Runs a distribution fleet of 80 vehicles, fitting the ideal range",
+          "Contact is Operations Manager, a key decision-maker",
+          "Explicitly requests a demo and pricing",
+          "Has a clear buying timeline starting in January"
+        ],
+        "summary": "Distribuidora del Norte is an operations-led beverage distributor with 80 trucks looking for a demo, pricing, and a January start date."
+      },
+      "model_error": null,
+      "tokens_in": 622,
+      "tokens_out": 151,
+      "cost_usd": 0.0005641,
+      "ms": 1300
+    },
+    {
+      "id": "tiny-bakery",
+      "pass": true,
+      "failures": [],
+      "route": "nurture",
+      "tier": "cold",
+      "score": 36,
+      "review": [],
+      "rules": [],
+      "model": {
+        "fit": 20,
+        "intent": 60,
+        "route": "nurture",
+        "confidence": 0.9,
+        "fleet_size": 3,
+        "reasons": [
+          "Fleet size of 3 vehicles is well below the ideal minimum of 25",
+          "User is actively asking if the software is overkill, showing mild buying intent",
+          "Food delivery industry aligns with Kestrel, but scale does not",
+          "Small local bakery fits the nurture category rather than active sales"
+        ],
+        "summary": "A local bakery with 3 delivery vans is inquiring if Kestrel Fleet is too large for their needs, making them a nurture lead due to small fleet size."
+      },
+      "model_error": null,
+      "tokens_in": 588,
+      "tokens_out": 160,
+      "cost_usd": 0.0005764,
+      "ms": 2139
+    },
+    {
+      "id": "enterprise-rfp",
       "pass": true,
       "failures": [],
       "route": "sales",
@@ -431,78 +487,20 @@
         "intent": 90,
         "route": "sales",
         "confidence": 0.95,
-        "fleet_size": 80,
-        "reasons": [
-          "Operates 80 delivery trucks in distribution",
-          "Job title is Gerente de Operaciones (Operations Manager)",
-          "Explicitly requests a demo and pricing",
-          "Has a clear buying timeline to start in January"
-        ],
-        "summary": "An operations manager at a mid-sized beverage distributor with 80 vehicles is requesting a demo, pricing, and a January start date."
-      },
-      "model_error": null,
-      "tokens_in": 620,
-      "tokens_out": 119,
-      "cost_usd": 0.0004835,
-      "ms": 1014
-    },
-    {
-      "id": "tiny-bakery",
-      "pass": true,
-      "failures": [],
-      "route": "nurture",
-      "tier": "cold",
-      "score": 44,
-      "review": [],
-      "rules": [],
-      "model": {
-        "fit": 40,
-        "intent": 50,
-        "route": "nurture",
-        "confidence": 0.8,
-        "fleet_size": 3,
-        "reasons": [
-          "Fleet size of 3 vehicles is below the ideal minimum of 25",
-          "Prospect is questioning if the software is overkill",
-          "Industry (bakery delivery) matches food delivery",
-          "No urgent buying timeline indicated"
-        ],
-        "summary": "A bakery with 3 delivery vans is inquiring if the software is too large for their needs, placing them in the nurture category."
-      },
-      "model_error": null,
-      "tokens_in": 586,
-      "tokens_out": 138,
-      "cost_usd": 0.0005208,
-      "ms": 18884
-    },
-    {
-      "id": "enterprise-rfp",
-      "pass": true,
-      "failures": [],
-      "route": "sales",
-      "tier": "hot",
-      "score": 96,
-      "review": [],
-      "rules": [],
-      "model": {
-        "fit": 100,
-        "intent": 90,
-        "route": "sales",
-        "confidence": 1.0,
         "fleet_size": 1800,
         "reasons": [
-          "Company runs 1,800 vehicles, fitting the 25 to 2,000 range perfectly.",
-          "Contact is VP Transportation, an ideal decision-maker role.",
-          "Industry is 3PL and final-mile delivery, matching core Kestrel use cases.",
-          "Lead is actively issuing an RFP for route optimization and dispatch."
+          "Large fleet of 1,800 vehicles perfectly matches ideal customer profile",
+          "Contact is VP Transportation, an ideal decision-maker role",
+          "Company runs transportation and final-mile delivery",
+          "Active RFP for a route optimization and dispatch platform"
         ],
-        "summary": "Meridian 3PL is issuing an RFP for route optimization across 1,800 vehicles and is requesting contact details to submit proposal documents."
+        "summary": "Meridian 3PL is issuing an RFP for a route optimization platform for their 1,800-vehicle fleet and requires a contact for RFP documents."
       },
       "model_error": null,
-      "tokens_in": 775,
-      "tokens_out": 170,
-      "cost_usd": 0.0006575,
-      "ms": 1379
+      "tokens_in": 777,
+      "tokens_out": 153,
+      "cost_usd": 0.0006156,
+      "ms": 1267
     },
     {
       "id": "disposable",
@@ -558,15 +556,16 @@
         "reasons": [
           "Company is a software reseller",
           "Contact is a Managing Director",
-          "Inquiring about reseller terms rather than buying for own fleet"
+          "Inquiring about reseller terms",
+          "Not a direct end-user fleet buyer"
         ],
-        "summary": "Managing Director at FleetSoft Polska is inquiring about reseller terms to add Kestrel Fleet to their portfolio."
+        "summary": "A managing director at a software reseller wants to discuss adding Kestrel Fleet to their portfolio in Poland."
       },
       "model_error": null,
-      "tokens_in": 603,
-      "tokens_out": 119,
-      "cost_usd": 0.0004784,
-      "ms": 1175
+      "tokens_in": 605,
+      "tokens_out": 125,
+      "cost_usd": 0.000494,
+      "ms": 34134
     },
     {
       "id": "waste-booking-gmail",
@@ -586,18 +585,18 @@
         "confidence": 0.95,
         "fleet_size": 25,
         "reasons": [
-          "Operates 25 garbage trucks, matching the ideal fleet size.",
-          "Owner role has decision-making authority.",
-          "Waste collection is a core target industry.",
-          "Booked a demo call and stated a specific use case."
+          "Industry is waste collection, a core vertical for Kestrel",
+          "Fleet size of 25 vehicles meets the target range",
+          "Job title is Owner with decision-making power",
+          "Booked a demo call and stated a clear problem regarding fuel savings"
         ],
-        "summary": "The owner of Valley Waste Services operates 25 garbage trucks and has booked a demo to evaluate fuel savings for their weekly changing routes."
+        "summary": "The owner of Valley Waste Services with 25 garbage trucks has booked a demo to evaluate route planning for fuel savings."
       },
       "model_error": null,
       "tokens_in": 589,
-      "tokens_out": 148,
-      "cost_usd": 0.0005467,
-      "ms": 1336
+      "tokens_out": 143,
+      "cost_usd": 0.0005342000000000001,
+      "ms": 1395
     },
     {
       "id": "outsourcing-pitch",
@@ -615,17 +614,16 @@
         "confidence": 1.0,
         "fleet_size": null,
         "reasons": [
-          "Sender is offering outsourcing services rather than buying software",
-          "Pitching developer services for $18/hour",
-          "Classic B2B sales pitch directed at Kestrel"
+          "Sender is an outsourcing agency trying to sell development services",
+          "Not a prospective fleet customer"
         ],
-        "summary": "An outsourcing company pitching developer services to Kestrel Fleet."
+        "summary": "An external software development agency pitching outsourcing services to Kestrel Fleet."
       },
       "model_error": null,
-      "tokens_in": 609,
-      "tokens_out": 106,
-      "cost_usd": 0.0004477,
-      "ms": 1251
+      "tokens_in": 611,
+      "tokens_out": 98,
+      "cost_usd": 0.00042829999999999995,
+      "ms": 1513
     },
     {
       "id": "plumbing-comparison",
@@ -640,21 +638,21 @@
         "fit": 95,
         "intent": 90,
         "route": "sales",
-        "confidence": 1.0,
+        "confidence": 0.95,
         "fleet_size": 45,
         "reasons": [
-          "Industry is home services with own fleet",
-          "Fleet size of 45 vans is well within the ideal range",
+          "In the ideal industry (home services / plumbing)",
+          "Fleet size of 45 vehicles is well within the target range",
           "Contact is an Operations Manager",
-          "Explicitly asks for a demo and pricing with a Q1 timeline"
+          "Directly asked for a demo and pricing with a clear timeline"
         ],
-        "summary": "Operations Manager at Grant Plumbing & Heating with 45 vans is actively comparing tools for Q1 and requesting a demo and pricing."
+        "summary": "Operations Manager at Grant Plumbing & Heating with 45 service vans is actively comparing tools for Q1 and requested a demo and pricing."
       },
       "model_error": null,
-      "tokens_in": 599,
-      "tokens_out": 138,
-      "cost_usd": 0.0005247,
-      "ms": 1169
+      "tokens_in": 601,
+      "tokens_out": 141,
+      "cost_usd": 0.0005327999999999999,
+      "ms": 1393
     },
     {
       "id": "vague-interest",
@@ -664,27 +662,28 @@
       "tier": "cold",
       "score": 46,
       "review": [
-        "Model confidence 0.40 is below 0.6."
+        "Model confidence 0.50 is below 0.6."
       ],
       "rules": [],
       "model": {
         "fit": 50,
         "intent": 40,
         "route": "sales",
-        "confidence": 0.4,
+        "confidence": 0.5,
         "fleet_size": null,
         "reasons": [
-          "Company name suggests freight/delivery industry",
-          "Message is extremely brief with no details",
-          "No fleet size or job title provided"
+          "Company name implies freight and delivery industry.",
+          "Very brief message expressing interest but no details provided.",
+          "No fleet size or job title mentioned.",
+          "Requested a call back indicating some level of intent."
         ],
-        "summary": "Chris Doyle from Doyle Freight submitted a brief contact request asking for a call, but provided no fleet size or context."
+        "summary": "Chris Doyle from Doyle Freight submitted a brief contact form expressing interest and requesting a call, but provided no details on fleet size or specific needs."
       },
       "model_error": null,
-      "tokens_in": 572,
-      "tokens_out": 94,
-      "cost_usd": 0.0004066,
-      "ms": 1038
+      "tokens_in": 574,
+      "tokens_out": 132,
+      "cost_usd": 0.0005022,
+      "ms": 1536
     }
   ]
 }
