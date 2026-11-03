@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Leads · LeadLoom{% endblock %}
+{% block main %}
+<div class="stack-lg">
+  <div class="stack">
+    <h1>Leads</h1>
+    <p class="muted">
+      {% if reviewer %}Every lead, live and demo. Leads waiting for a person come first.
+      {% else %}The samples this browser sent. <a href="/signin">Reviewers sign in</a> to see live leads.{% endif %}
+    </p>
+  </div>
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="stacked">
+      <thead>
+        <tr>
+          <th>Lead</th><th>Channel</th><th class="num">Score</th><th>Route</th><th>Status</th><th class="num">Model cost</th><th>Received</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        {% set d = r.decision %}
+        <tr {% if r.status == 'awaiting_review' %}class="needs-review"{% endif %}>
+          <td class="wide">
+            <a href="/leads/{{ r.id }}"><strong>{{ r.lead.name or r.email }}</strong></a>
+            <div class="small muted">{{ r.lead.company or r.email }}{% if r.workspace and reviewer %} · demo{% endif %}</div>
+          </td>
+          <td class="small">{{ channel_names[r.source] }}</td>
+          <td class="num">
+            {% if d %}{{ d.score }} <span class="badge tier-{{ d.tier }}">{{ d.tier }}</span>{% else %}<span class="muted">…</span>{% endif %}
+          </td>
+          <td class="small">{{ d.route if d else '' }}</td>
+          <td><span class="badge status-{{ r.status }}">{{ status_names[r.status] }}</span></td>
+          <td class="num small mono">{{ r.cost | usd }}</td>
+          <td class="small muted">{{ r.created_at | when }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="panel stack">
+    <h2>No leads yet</h2>
+    <p class="muted">Send a sample lead through n8n and it shows up here within a few seconds.</p>
+    <div><a class="btn btn-primary" href="/#try">Send a sample lead</a></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
