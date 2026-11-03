@@ -1,6 +1,8 @@
 """The few HubSpot CRM v3/v4 calls LeadLoom needs, on HubSpot's free CRM. Every call
 goes through http.send, so rate limits (429) and server errors are retried."""
 
+import re
+
 import httpx
 
 from .http import send
@@ -83,7 +85,14 @@ def create_note(
     return _post(c, "/crm/v3/objects/notes", body)["id"]
 
 
-def record_url(portal_id: str, kind: str, record_id: str | None) -> str | None:
+def app_host(token: str) -> str:
+    """Each HubSpot account lives in one data centre, which its key names (pat-na2-...)."""
+    m = re.match(r"pat-([a-z]+\d+)-", token)
+    region = m.group(1) if m else "na1"
+    return "app.hubspot.com" if region == "na1" else f"app-{region}.hubspot.com"
+
+
+def record_url(portal_id: str, kind: str, record_id: str | None, host: str = "app.hubspot.com") -> str | None:
     if not portal_id or not record_id:
         return None
-    return f"https://app.hubspot.com/contacts/{portal_id}/record/{TYPE_IDS[kind]}/{record_id}"
+    return f"https://{host}/contacts/{portal_id}/record/{TYPE_IDS[kind]}/{record_id}"

@@ -127,7 +127,7 @@ sent three of the four reviewed leads to a person.
 
 ## Measured so far
 
-- **Tests:** 75 unit tests and 8 end-to-end tests pass, the end-to-end ones against the real n8n workflow.
+- **Tests:** 76 unit tests and 8 end-to-end tests pass, the end-to-end ones against the real n8n workflow.
 - **Orchestration overhead,** on a Windows laptop with the local stand-ins for the model and HubSpot (20 form
   leads): n8n answered the webhook in 84 ms (median; slowest 417 ms), and each lead was synced 0.19 s after
   its webhook (median; slowest 0.64 s). Real runs add the model call and up to eight HubSpot calls.
@@ -195,7 +195,7 @@ password `LeadLoom-local-1`); the first run downloads n8n through npx. To use a 
 ## Tests
 
 ```bash
-uv run pytest       # 75 unit tests: intake and signatures, enrichment and SSRF guards, scoring rules,
+uv run pytest       # 76 unit tests: intake and signatures, enrichment and SSRF guards, scoring rules,
                     # LLM schema and retries, dedupe, durable steps, HubSpot sync, review flow, eval grader
 npm run test:e2e    # 8 Playwright tests: starts the whole local stack, n8n included
 ```

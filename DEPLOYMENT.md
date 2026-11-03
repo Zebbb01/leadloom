@@ -52,12 +52,14 @@ and `n8n`:
 ## 2. The database
 
 **Supabase (default).** At [supabase.com](https://supabase.com), create a project in an organization on the
-**Free** plan (a project in a paid organization is billed; the Free plan allows two active projects). Pick
-the Singapore region to sit near Azure's Southeast Asia. Then open **Connect** → **Session pooler** and note:
+**Free** plan (a project in a paid organization is billed; the Free plan allows two active projects). Keep
+the database and the apps in one part of the world, since every request makes several database round trips:
+a Singapore project pairs with the default `location` (`southeastasia`), an Ireland project (`eu-west-1`) with
+`-var location=northeurope`. Then open **Connect** → **Session pooler** and note:
 
 | Terraform variable | Value |
 | --- | --- |
-| `postgres_host` | the pooler host, such as `aws-0-ap-southeast-1.pooler.supabase.com` |
+| `postgres_host` | the pooler host exactly as shown, such as `aws-0-ap-southeast-1.pooler.supabase.com` (newer projects use `aws-1-`) |
 | `postgres_user` | `postgres.<project-ref>` |
 | `postgres_password` | the database password you set for the project |
 
