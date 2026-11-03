@@ -41,6 +41,7 @@ jobs:
         if: failure()
         with:
           name: e2e-logs
+          include-hidden-files: true
           path: |
             test-results
             .data/*.log
