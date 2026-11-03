@@ -70,7 +70,8 @@ jobs:
           az containerapp update -g "$RG" -n "$N8N" --image "$repo/leadloom-n8n:$TAG" --output none
           az containerapp job update -g "$RG" -n "$JOB" --image "$repo/leadloom-n8n:$TAG" --output none
           run=$(az containerapp job start -g "$RG" -n "$JOB" --query name -o tsv)
-          for i in $(seq 1 60); do
+          # Up to 30 minutes: the first run migrates a fresh n8n database.
+          for i in $(seq 1 180); do
             status=$(az containerapp job execution show -g "$RG" -n "$JOB" --job-execution-name "$run" --query properties.status -o tsv)
             echo "workflow setup: $status"
             [ "$status" = "Succeeded" ] && break

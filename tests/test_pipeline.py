@@ -13,7 +13,7 @@ def lead(**kw) -> Lead:
         **{
             "source": "form",
             "external_id": "f-1",
-            "email": "maria@brightpath.example",
+            "email": "maria@brightpath.example.com",
             "name": "Maria Santos",
             "company": "BrightPath Logistics",
             "website": "http://sites.test/brightpath-logistics",
@@ -80,10 +80,10 @@ def test_daily_model_cap_falls_back_to_rules(db, settings, clients, router):
 def test_dedupe_finds_the_same_person_under_another_address(db, settings, clients):
     first, _ = pipeline.store(db, lead())
     qualify(db, settings, clients, first)
-    second, _ = pipeline.store(db, lead(external_id="f-2", email="m.santos@brightpath.example", name="Maria D. Santos"))
+    second, _ = pipeline.store(db, lead(external_id="f-2", email="m.santos@brightpath.example.com", name="Maria D. Santos"))
     result = qualify(db, settings, clients, second)
     assert result["next"] == "review"
-    assert result["decision"]["dedupe"]["possible_duplicates"][0]["email"] == "maria@brightpath.example"
+    assert result["decision"]["dedupe"]["possible_duplicates"][0]["email"] == "maria@brightpath.example.com"
     third, _ = pipeline.store(db, lead(external_id="f-3"))
     assert qualify(db, settings, clients, third)["decision"]["dedupe"]["existing"]["earlier_leads"] == 1
 
@@ -128,7 +128,7 @@ def test_a_failed_sync_resumes_without_duplicates(db, settings, clients, router)
 
 def test_existing_customer_keeps_lifecycle_and_open_deal_is_reused(db, settings, clients, router):
     grace = lead(
-        email="grace@greenline-grocers.example",
+        email="grace@greenline-grocers.example.com",
         name="Grace Mendoza",
         company="Greenline Grocers",
         website="",
