@@ -108,8 +108,22 @@ no model judges another.
 LLM_API_KEY=<Gemini API key> uv run python -m scripts.eval   # writes evals/latest.json
 ```
 
-**No score yet.** The eval needs a model key, so it runs in the owner's terminal; the score, the cost per
-lead and the latency go here once it has run.
+**24 of 24 passed** on `gemini-3.5-flash-lite` (Gemini API free tier, 2026-11-03; results in
+`evals/latest.json`):
+
+| Measure | Result |
+| --- | --- |
+| Leads ending with an allowed route, tier and review outcome | 24 / 24 |
+| Model calls | 22 (the honeypot hit and the throwaway address never reach the model) |
+| Schema failures or model errors | 0 |
+| Tokens per scored lead | 776 on average |
+| Cost per scored lead at list price | $0.00052 (free on the free tier) |
+| Model call time | 1.3 s median, 18.9 s slowest |
+| Sent to a person | 4: the prompt injection, the duplicate, the competitor (rules) and the two-word message (model confidence 0.40) |
+
+The rules did not change a route on this set; the model already routed every lead acceptably. They capped one
+lead's fit (a personal address with no company website), marked two leads as spam without a model call, and
+sent three of the four reviewed leads to a person.
 
 ## Measured so far
 
@@ -211,9 +225,10 @@ private to their browser; and a HubSpot outage that outlasts every retry, then a
 
 ## Limits and next steps
 
-- The eval has not run on a real model yet (see Evals), and the HubSpot calls have run only against a mock
-  of the endpoints LeadLoom uses, not a real HubSpot account. LeadLoom is not deployed yet, so cold-start
-  times on Container Apps are not measured.
+- The HubSpot calls have run only against a mock of the endpoints LeadLoom uses, not a real HubSpot account.
+  LeadLoom is not deployed yet, so cold-start times on Container Apps are not measured.
+- The eval set is small (24 leads) and the model passes all of it, so it shows that the prompt, schema and
+  rules hold together rather than ranking models; harder, ambiguous leads would make it discriminate.
 - Dedupe sees the deals LeadLoom created, not open deals made by hand in HubSpot; a deal search through
   associations would close that.
 - Enrichment reads the home page only. The address check runs before each request, so a DNS answer that

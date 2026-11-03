@@ -135,7 +135,9 @@ def main() -> None:
                 ["publish:workflow", "--id=LeadLoomIntake01"],
             ):
                 print("n8n", *args, flush=True)
-                subprocess.run([*n8n, *args], cwd=ROOT, env=env, check=True, stdout=log, stderr=subprocess.STDOUT)
+                # Unpublishing fails on a fresh database, where the workflow does not exist yet.
+                check = args[0] != "unpublish:workflow"
+                subprocess.run([*n8n, *args], cwd=ROOT, env=env, check=check, stdout=log, stderr=subprocess.STDOUT)
         start([*n8n, "start"], env, "n8n.log")
         wait_for(f"http://127.0.0.1:{N8N_PORT}/healthz/readiness", "n8n")
         start(

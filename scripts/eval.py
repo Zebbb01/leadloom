@@ -81,8 +81,9 @@ def run(samples: list[dict], client: httpx.Client, s: Settings, pause_s: float =
                 )
             except llm.LlmError as e:
                 error, usage = str(e), e.usage
-            if pause_s:
-                time.sleep(pause_s)
+        ms = round((time.perf_counter() - started) * 1000)
+        if pause_s and not scoring.junk_rule(lead):
+            time.sleep(pause_s)
         d = scoring.decide(lead, assessment, dedupe, error)
         failures = grade(x, d)
         results.append(
@@ -100,7 +101,7 @@ def run(samples: list[dict], client: httpx.Client, s: Settings, pause_s: float =
                 "tokens_in": usage["tokens_in"],
                 "tokens_out": usage["tokens_out"],
                 "cost_usd": llm.cost_usd(s.llm_model, usage["tokens_in"], usage["tokens_out"]),
-                "ms": round((time.perf_counter() - started) * 1000),
+                "ms": ms,
             }
         )
         r = results[-1]
