@@ -15,6 +15,10 @@ audit log and a cost.
 
 The seller is **Kestrel Fleet**, a fictional route-planning SaaS for delivery fleets; its leads are made up.
 
+**Live demo: https://ca-leadloom-8s6bzq-api.salmonriver-2ba7975b.southeastasia.azurecontainerapps.io**
+(no sign-up; send a sample lead and act as its reviewer). Both apps scale to zero, so after a quiet spell the
+page takes about 20 seconds to wake and n8n up to two minutes; leads sent meanwhile wait for it.
+
 ![A booked demo: score 86, hot, the booked-meeting rule raised intent, synced to HubSpot, alert sent](docs/screenshots/lead-synced.png)
 
 ## What it does
@@ -125,9 +129,15 @@ The rules did not change a route on this set; the model already routed every lea
 lead's fit (a personal address with no company website), marked two leads as spam without a model call, and
 sent three of the four reviewed leads to a person.
 
-## Measured so far
+## Measured
 
 - **Tests:** 76 unit tests and 8 end-to-end tests pass, the end-to-end ones against the real n8n workflow.
+- **Live on Azure** (2026-11-03; Gemini free tier, a HubSpot developer test account, the database in
+  Supabase's Ireland region): a booked demo went from its webhook to a HubSpot contact, company, deal and
+  note in 13 s; a spam pitch was discarded 5 s after its webhook; a reviewer's approval resumed the waiting
+  n8n run and the lead was in HubSpot within 20 s. Most of that time is database round trips between
+  Southeast Asia and Ireland (about 0.2 s each). Cold starts: the API answered after 19 s, n8n after about
+  100 s.
 - **Orchestration overhead,** on a Windows laptop with the local stand-ins for the model and HubSpot (20 form
   leads): n8n answered the webhook in 84 ms (median; slowest 417 ms), and each lead was synced 0.19 s after
   its webhook (median; slowest 0.64 s). Real runs add the model call and up to eight HubSpot calls.
@@ -225,8 +235,9 @@ private to their browser; and a HubSpot outage that outlasts every retry, then a
 
 ## Limits and next steps
 
-- The HubSpot calls have run only against a mock of the endpoints LeadLoom uses, not a real HubSpot account.
-  LeadLoom is not deployed yet, so cold-start times on Container Apps are not measured.
+- The apps run in Southeast Asia (the Free Trial's one Container Apps environment, shared with LedgerLens)
+  while the database is in Ireland, so each lead spends seconds on database round trips. A Supabase project in
+  Singapore would cut most of that.
 - The eval set is small (24 leads) and the model passes all of it, so it shows that the prompt, schema and
   rules hold together rather than ranking models; harder, ambiguous leads would make it discriminate.
 - Dedupe sees the deals LeadLoom created, not open deals made by hand in HubSpot; a deal search through
