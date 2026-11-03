@@ -81,7 +81,7 @@ def test_review_flow_over_http(client, router):
     assert "not right" in client.post("/signin", data={"key": "guess"}).text
     assert client.post("/signin", data={"key": "test-reviewer-key"}).status_code == 303
     page = client.get(f"/leads/{lead_id}")
-    assert page.status_code == 200 and "Needs a person" in page.text
+    assert page.status_code == 200 and "Needs your decision" in page.text
 
     r = client.post(
         f"/leads/{lead_id}/review",
@@ -97,7 +97,7 @@ def test_review_flow_over_http(client, router):
         f"/v1/leads/{lead_id}/events", json={"action": "alert_sent", "detail": {"channel": "slack"}}, headers=KEY
     ).json() == {"ok": True}
     page = client.get(f"/leads/{lead_id}").text
-    assert "Synced" in page and synced["hubspot"]["contact_id"] in page and "alert sent" in page
+    assert "Synced" in page and synced["hubspot"]["contact_id"] in page and "Alert sent" in page
     assert client.post(f"/v1/leads/{lead_id}/sync", headers=KEY).json()["alert"] is None
 
 

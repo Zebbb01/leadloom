@@ -46,6 +46,13 @@ STATUS_NAMES = {
     "discarded": "Discarded",
     "failed": "Sync failed",
 }
+# The leads list's tabs; an empty set means every status.
+VIEWS: dict[str, set[str]] = {
+    "all": set(),
+    "review": {"awaiting_review"},
+    "synced": {"synced"},
+    "closed": {"discarded", "rejected", "failed"},
+}
 SITE_NAMES = {
     "robots_disallowed": "Not read: the site's robots.txt asks LeadLoomBot to stay out.",
     "robots_unreachable": "Not read: robots.txt could not be fetched, which RFC 9309 treats as a refusal.",
@@ -60,6 +67,31 @@ Allow: /sample-sites/
 User-agent: *
 Disallow: /
 """
+
+
+def ago(dt: datetime) -> str:
+    seconds = int((datetime.now(UTC) - dt).total_seconds())
+    if seconds < 60:
+        return "just now"
+    for unit, size in (("d", 86400), ("h", 3600), ("min", 60)):
+        if seconds >= size:
+            return f"{seconds // size} {unit} ago"
+    return "just now"
+
+
+def progress(row: dict) -> list[tuple[str, str]]:
+    """The lead page's stepper: each step is done, now (in progress), todo or bad."""
+    status, d = row["status"], row["decision"] or {}
+    waiting = status == "awaiting_review" or (status == "qualified" and d.get("next") == "review")
+    steps = [("Received", "done"), ("Scored", "done" if d else "now")]
+    if waiting or d.get("reviewed"):
+        steps.append(("Reviewed", "now" if waiting else "done"))
+    if status in ("discarded", "rejected"):
+        steps.append(("Not sent to HubSpot", "done"))
+    else:
+        moving = status == "approved" or (status == "qualified" and d.get("next") == "sync")
+        steps.append(("In HubSpot", {"synced": "done", "failed": "bad"}.get(status, "now" if moving else "todo")))
+    return steps
 
 
 def reviewer_token(key: str) -> str:
@@ -92,6 +124,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
         ROUTES=ROUTES, channel_names=CHANNEL_NAMES, status_names=STATUS_NAMES, site_names=SITE_NAMES
     )
     templates.env.filters["usd"] = lambda x: f"${x:.5f}" if x else "$0"
+    templates.env.filters["ago"] = ago
     templates.env.filters["when"] = lambda dt, time_only=False: (
         (datetime.fromisoformat(dt) if isinstance(dt, str) else dt)
         .astimezone(UTC)
@@ -198,15 +231,25 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
 
     @app.get("/leads", response_class=HTMLResponse)
     def leads(request: Request) -> HTMLResponse:
+        view = request.query_params.get("view", "all")
+        view = view if view in VIEWS else "all"
         with request.app.state.db.connection() as c:
             rows = c.execute(
                 """select l.id, l.source, l.status, l.email, l.lead, l.decision, l.created_at, l.workspace,
                           coalesce((select sum(cost_usd) from steps where lead_id = l.id), 0)::float as cost
                    from leads l where %s or l.workspace = %s
-                   order by (l.status = 'awaiting_review') desc, l.created_at desc limit 100""",
+                   order by (l.status = 'awaiting_review') desc, l.created_at desc limit 200""",
                 (is_reviewer(request), request.state.workspace),
             ).fetchall()
-        return page(request, "leads.html", rows=rows)
+        counts = {v: sum(1 for r in rows if r["status"] in statuses or not statuses) for v, statuses in VIEWS.items()}
+        shown = [r for r in rows if r["status"] in VIEWS[view] or not VIEWS[view]]
+        return page(request, "leads.html", rows=shown, view=view, counts=counts)
+
+    @app.get("/leads/{lead_id}/state")
+    def lead_state(lead_id: uuid.UUID, request: Request) -> dict:
+        """What the lead page polls while n8n works, so it reloads only on a change."""
+        row = visible(request, lead_id)
+        return {"status": row["status"], "updated_at": row["updated_at"].isoformat()}
 
     @app.get("/leads/{lead_id}", response_class=HTMLResponse)
     def lead_page(lead_id: uuid.UUID, request: Request) -> HTMLResponse:
@@ -228,7 +271,8 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             lead=row["lead"],
             d=row["decision"],
             events=events,
-            steps=steps,
+            steps=progress(row),
+            steps_run=steps,
             cost=pipeline.cost(db, str(lead_id)),
             busy=(busy and not stuck) or watching,
             stuck=stuck,

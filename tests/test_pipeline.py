@@ -80,7 +80,9 @@ def test_daily_model_cap_falls_back_to_rules(db, settings, clients, router):
 def test_dedupe_finds_the_same_person_under_another_address(db, settings, clients):
     first, _ = pipeline.store(db, lead())
     qualify(db, settings, clients, first)
-    second, _ = pipeline.store(db, lead(external_id="f-2", email="m.santos@brightpath.example.com", name="Maria D. Santos"))
+    second, _ = pipeline.store(
+        db, lead(external_id="f-2", email="m.santos@brightpath.example.com", name="Maria D. Santos")
+    )
     result = qualify(db, settings, clients, second)
     assert result["next"] == "review"
     assert result["decision"]["dedupe"]["possible_duplicates"][0]["email"] == "maria@brightpath.example.com"
