@@ -1,61 +1,68 @@
 {% extends "base.html" %}
 {% block main %}
-<div class="stack-lg">
-  <section class="hero">
-    <h1>Leads in. Qualified, deduplicated and in the CRM out.</h1>
-    <p>Website forms, emails and booked meetings arrive in an <strong>n8n</strong> workflow. A Python service
-      checks who the lead already is, reads their company's website, scores and routes them with an LLM whose
-      answer is checked against a schema and overruled by rules in code, then writes the contact, company, deal
-      and a note explaining the score to <strong>HubSpot</strong>. Hot leads ping Slack. Unsure ones wait here for a person.</p>
-  </section>
-
-  <ol class="flow" aria-label="How a lead moves">
-    <li><strong>Webhook in n8n</strong>Form, inbound email (Postmark) or booking (Cal.com), signatures checked.</li>
-    <li><strong>Stored once</strong>A redelivered webhook maps to the same lead.</li>
-    <li><strong>Qualified</strong>Dedupe, website enrichment (robots.txt respected), LLM score, rules.</li>
-    <li><strong>Reviewed if unsure</strong>Low confidence, duplicates or odd messages wait for a person.</li>
-    <li><strong>Synced</strong>HubSpot contact, company, deal and note; Slack alert for hot leads.</li>
+<section class="intro">
+  <div>
+    <h1>Leads in. Scored, deduplicated and in HubSpot out.</h1>
+    <p class="lede">An n8n workflow takes in forms, emails and booked meetings. A Python service decides what each lead
+      is worth, and a person checks the unsure ones.</p>
+  </div>
+  <ol class="pipeline" aria-label="How a lead moves">
+    <li title="Form, inbound email or booking; signatures checked"><svg class="icon"><use href="#i-webhook"/></svg>n8n webhook</li>
+    <li title="A redelivered webhook maps to the same lead"><svg class="icon"><use href="#i-db"/></svg>Stored once</li>
+    <li title="Dedupe, website read (robots.txt respected), LLM score, rules in code"><svg class="icon"><use href="#i-spark"/></svg>Scored</li>
+    <li title="Low confidence, duplicates or odd messages wait for a person"><svg class="icon"><use href="#i-person"/></svg>Reviewed if unsure</li>
+    <li title="Contact, company, deal and a note; Slack alert for hot leads"><svg class="icon"><use href="#i-crm"/></svg>HubSpot</li>
   </ol>
+</section>
 
-  <section id="try" class="stack">
-    <h2>Try it</h2>
-    <p class="muted">Each sample goes through the real path: this page sends it to n8n in the format the real
-      sender uses (signed like Cal.com, authenticated like Postmark), and n8n calls the service.
-      You can act as the reviewer for your own samples.</p>
-    {% if error %}<p class="flash flash-bad" role="alert">{{ error }}</p>{% endif %}
-    <div class="grid">
+<section class="tryit" aria-labelledby="try-h">
+  <div class="tryit-head">
+    <h2 id="try-h">Try a sample lead</h2>
+    <span class="small muted">It goes through the real workflow, signed like the real sender.</span>
+  </div>
+  {% if error %}<p class="notice notice-bad" role="alert"><svg class="icon"><use href="#i-alert"/></svg><span>{{ error }}</span></p>{% endif %}
+  <form class="composer" method="post" action="/demo/send" data-busy>
+    <fieldset class="samples">
+      <legend class="sr-only">Sample leads</legend>
       {% for x in samples %}
-      <form class="panel sample" method="post" action="/demo/send">
-        <input type="hidden" name="sample" value="{{ x.id }}">
-        <div>
-          <span class="badge channel">{{ channel_names[x.channel] }}</span>
-        </div>
-        <h3>{{ x.title }}</h3>
-        <p class="small muted">{{ x.person.name }}{% if x.person.company %}, {{ x.person.company }}{% endif %}</p>
-        <p class="small">{{ x.message | truncate(150) }}</p>
-        <details>
-          <summary>Edit the message or channel</summary>
-          <div class="stack" style="margin-top: 12px">
-            <div>
-              <label for="m-{{ x.id }}">Message</label>
-              <textarea id="m-{{ x.id }}" name="message" maxlength="2000">{{ x.message }}</textarea>
-            </div>
-            <div>
-              <label for="c-{{ x.id }}">Channel</label>
-              <select id="c-{{ x.id }}" name="channel">
-                {% for key, name in channel_names.items() %}
-                <option value="{{ key }}" {% if key == x.channel %}selected{% endif %}>{{ name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-        </details>
-        <div class="actions"><button class="btn btn-primary" type="submit">Send through n8n</button></div>
-      </form>
+      <label class="sample" data-message="{{ x.message }}" data-channel="{{ x.channel }}"
+             data-name="{{ x.person.name }}" data-company="{{ x.person.company or '' }}">
+        <input type="radio" name="sample" value="{{ x.id }}" {% if loop.first %}checked{% endif %}>
+        <svg class="icon"><use href="#i-{{ x.channel }}"/></svg>
+        <span class="sample-title">{{ x.title }}</span>
+        <span class="sample-who">{{ x.person.name }}{% if x.person.company %} · {{ x.person.company }}{% endif %}</span>
+      </label>
       {% endfor %}
+    </fieldset>
+    {% set first = samples[0] %}
+    <div class="compose">
+      <div class="compose-head">
+        <div class="persona">
+          <strong data-bind="name">{{ first.person.name }}</strong>
+          <span class="small muted" data-bind="company">{{ first.person.company or 'No company given' }}</span>
+        </div>
+        <fieldset>
+          <legend class="sr-only">Send it as</legend>
+          <div class="seg">
+            {% for key, name in channel_names.items() %}
+            <label><input type="radio" name="channel" value="{{ key }}" {% if key == first.channel %}checked{% endif %}><svg class="icon"><use href="#i-{{ key }}"/></svg>{{ name }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+      <div>
+        <label for="message">Message</label>
+        <textarea id="message" name="message" maxlength="2000" rows="6">{{ first.message }}</textarea>
+      </div>
+      <div class="compose-foot">
+        <span class="small muted">Fictional people. Scored on Gemini's free tier, so don't type real personal data.</span>
+        <button class="btn btn-primary" type="submit" data-busy-label="Sending through n8n…">
+          <span class="spinner" aria-hidden="true"></span><span class="label-text">Send through n8n</span>
+        </button>
+      </div>
+      <p class="sending" hidden role="status"><span class="spinner" aria-hidden="true"></span>
+        n8n is taking the lead in. This takes 10 to 30 seconds, up to two minutes if n8n is waking up.</p>
     </div>
-    <p class="small muted">Scoring uses the Gemini API's free tier, where Google may use what is sent to improve its
-      products. The samples are made up; do not type real personal data into them.</p>
-  </section>
-</div>
+  </form>
+</section>
 {% endblock %}

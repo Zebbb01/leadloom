@@ -8,7 +8,8 @@ const shot = (page: Page, name: string) => page.screenshot({ path: `docs/screens
 
 async function send(page: Page, title: string) {
   await page.goto("/");
-  await page.locator("form.sample", { hasText: title }).getByRole("button", { name: "Send through n8n" }).click();
+  await page.locator(".sample", { hasText: title }).click();
+  await page.getByRole("button", { name: "Send through n8n" }).click();
   await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/);
 }
 
