@@ -1,6 +1,6 @@
 [project]
 name = "leadloom"
-version = "0.2.0"
+version = "0.2.1"
 description = "AI lead intake and CRM automation: n8n receives leads from a website form, inbound email and bookings; a FastAPI service dedupes, enriches, scores and routes them and syncs HubSpot."
 readme = "README.md"
 # pgserver (the embedded PostgreSQL the tests use) ships wheels up to Python 3.12.
