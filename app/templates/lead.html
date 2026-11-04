@@ -167,7 +167,8 @@
 
     <section class="sec" aria-labelledby="cost-h">
       <h2 id="cost-h">Cost</h2>
-      <p><span class="mono" data-testid="cost">{{ cost.usd | usd }}</span> <span class="small muted">at list price · {{ cost.tokens_in + cost.tokens_out }} tokens · free on the free tier</span></p>
+      <p><span class="mono" data-testid="cost">{{ cost.usd | usd }}</span> <span class="small muted">at list price</span></p>
+      <p class="small muted">{{ cost.tokens_in + cost.tokens_out }} tokens · free on the free tier</p>
       {% if steps_run %}
       <table class="steps">
         {% for st in steps_run %}<tr><td class="mono">{{ st.name }}</td><td>{{ st.ms }} ms</td></tr>{% endfor %}
