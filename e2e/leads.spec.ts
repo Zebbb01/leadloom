@@ -160,3 +160,15 @@ test("signing out asks first", async ({ page }) => {
   await dialog.getByRole("button", { name: "Sign out" }).click();
   await expect(page.getByRole("link", { name: "Reviewer sign-in" })).toBeVisible();
 });
+
+test("on a phone the choice controls line up in even rows", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const rows = (selector: string) =>
+    page.locator(selector).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  await page.goto("/");
+  expect(new Set(await rows(".seg label")).size).toBe(1);
+  await send(page, "A message that tries to set its own score");
+  await expect(status(page)).toHaveText("Needs review");
+  const routes = await rows(".decision .seg label");
+  expect([...new Set(routes)].map((top) => routes.filter((t) => t === top).length)).toEqual([3, 3]);
+});

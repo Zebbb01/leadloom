@@ -306,6 +306,9 @@ dialog .actions { justify-content: flex-end; margin-top: 20px; }
   .top-in { padding: 0 16px; gap: 12px; }
   .nav a { padding: 6px 8px; }
   .intro h1 { font-size: 20px; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .seg label { justify-content: center; padding: 6px 4px; }
+  .seg .icon { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spinner, .stepper .now .mark::after { animation-duration: 2.4s; }
