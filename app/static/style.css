@@ -297,6 +297,7 @@ dialog .actions { justify-content: flex-end; margin-top: 20px; }
 .narrow { max-width: 380px; margin: 40px auto 0; }
 .narrow h1 { margin-bottom: 6px; }
 .narrow form { display: grid; gap: 14px; margin-top: 20px; }
+.narrow > .actions { margin-top: 20px; }
 
 @media (max-width: 560px) {
   main { padding: 20px 16px 48px; }

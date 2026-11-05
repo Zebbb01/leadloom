@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · LeadLoom{% endblock %}
+{% block main %}
+<div class="narrow">
+  <h1>{{ title }}</h1>
+  <p class="muted">{{ text }}</p>
+  <div class="actions">
+    <a class="btn btn-primary" href="/">Try a sample lead</a>
+    <a class="btn btn-quiet" href="/leads">Your leads</a>
+  </div>
+</div>
+{% endblock %}

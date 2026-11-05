@@ -120,7 +120,7 @@ def test_a_failed_sync_resumes_without_duplicates(db, settings, clients, router)
     with pytest.raises(HttpError):
         pipeline.sync(db, settings, lead_id, clients["crm"])
     row = pipeline.get(db, lead_id)
-    assert row["status"] == "failed" and "503" in row["error"]
+    assert row["status"] == "failed" and row["error"] == "HubSpot was down or overloaded (HTTP 503)"
     result = pipeline.sync(db, settings, lead_id, clients["crm"])
     assert result["status"] == "synced" and result["alert"]
     objects = router.hubspot()["objects"]

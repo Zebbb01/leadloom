@@ -132,6 +132,10 @@ def create_mock() -> FastAPI:
         raw = prompt.split("\n<lead>\n", 1)[1].rsplit("\n</lead>", 1)[0].replace("<\\/", "</")
         lead = json.loads(raw)
         message = lead.get("message") or ""
+        if "[busy]" in message:
+            # The shape Gemini's OpenAI-compatible endpoint sends when it is overloaded.
+            busy = {"code": 503, "message": "This model is experiencing high demand.", "status": "UNAVAILABLE"}
+            return JSONResponse([{"error": busy}], 503)
         if "[flaky]" in message and prompt not in state["flaky"]:
             state["flaky"].add(prompt)
             return JSONResponse({"error": {"message": "Rate limit (mock)"}}, 429, headers={"retry-after": "1"})

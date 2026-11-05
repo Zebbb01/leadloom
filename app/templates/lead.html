@@ -26,7 +26,7 @@
 <div class="notice notice-bad" role="alert" style="margin-top:16px">
   <svg class="icon"><use href="#i-alert"/></svg>
   <div class="stack" style="flex:1">
-    <p>{% if row.status == 'failed' %}The HubSpot sync failed: {{ row.error }}{% else %}No progress for two minutes; the n8n run may have stopped.{% endif %}</p>
+    <p>{% if row.status == 'failed' %}{{ row.error }}, so the lead is not in HubSpot yet.{% else %}No progress for two minutes; the n8n run may have stopped.{% endif %}</p>
     <form method="post" action="/leads/{{ row.id }}/retry" data-busy><button class="btn btn-sm" type="submit" data-busy-label="Sending…"><span class="spinner" aria-hidden="true"></span><span class="label-text">Retry through n8n</span></button></form>
   </div>
 </div>
@@ -75,7 +75,9 @@
       </div>
       {% if d.summary %}<p class="summary">{{ d.summary }}</p>{% endif %}
       <div class="meters">
-        {% for label, value in [('Fit', d.fit), ('Intent', d.intent), ('Confidence', (d.confidence * 100) | round | int)] %}
+        {# Without a model answer there is no confidence to show, only the rules' defaults. #}
+        {% set meters = [('Fit', d.fit), ('Intent', d.intent)] + ([('Confidence', (d.confidence * 100) | round | int)] if d.model or d.confidence else []) %}
+        {% for label, value in meters %}
         <div class="meter"><span class="muted">{{ label }}</span><div class="bar"><span style="width: {{ value }}%"></span></div><span class="num">{{ value }}{% if label == 'Confidence' %}%{% endif %}</span></div>
         {% endfor %}
       </div>

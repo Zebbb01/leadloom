@@ -152,11 +152,12 @@ def decide(lead: Lead, a: Assessment | None, dedupe: dict, model_error: str | No
             "route": "sales" if booked else "nurture",
             "confidence": 0.0,
             "fleet_size": None,
-            "reasons": ["Scored by rules only."],
+            "reasons": [],
             "summary": "",
         }
-        override("model_unavailable", f"scored by rules only: {model_error or 'no model answer'}")
-        review.append("The model gave no usable answer, so the rules scored this lead.")
+        why = model_error or "The model gave no answer"
+        override("model_unavailable", f"{why}, so the rules set a default score")
+        review.append(f"{why}, so the rules gave this lead a default score. Check the route and score first.")
     else:
         base = a.model_dump()
     d: dict[str, Any] = {**base, "model": a.model_dump() if a else None}

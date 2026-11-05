@@ -104,9 +104,16 @@ def test_low_confidence_goes_to_review():
 
 
 def test_no_model_answer_falls_back_to_rules_and_review():
-    d = decide(lead(source="booking"), None, NO_DEDUPE, "The model returned 503")
-    assert (d["route"], d["next"]) == ("sales", "review")
-    assert d["overrides"][0]["rule"] == "model_unavailable" and "503" in d["overrides"][0]["effect"]
+    d = decide(lead(source="booking"), None, NO_DEDUPE, "The model was down or overloaded (HTTP 503)")
+    assert (d["route"], d["next"]) == ("sales", "review") and d["reasons"] == []
+    assert d["overrides"][0] == {
+        "rule": "model_unavailable",
+        "effect": "The model was down or overloaded (HTTP 503), so the rules set a default score",
+    }
+    assert d["review_reasons"] == [
+        "The model was down or overloaded (HTTP 503), so the rules gave this lead a default score. "
+        "Check the route and score first."
+    ]
 
 
 def test_reviewer_score_override_and_route_change_recompute():

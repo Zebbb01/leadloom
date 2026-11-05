@@ -69,7 +69,7 @@ def test_answers_that_break_the_schema_raise_with_usage():
     client, _ = replies(completion(json.dumps({**ANSWER, "fit": 140})))
     with pytest.raises(llm.LlmError) as e:
         llm.complete(client, S, "s", "u", Assessment)
-    assert "schema" in str(e.value) and e.value.usage["tokens_in"] == 1000
+    assert "expected format" in str(e.value) and e.value.detail and e.value.usage["tokens_in"] == 1000
 
 
 def test_client_errors_are_not_retried():
@@ -94,6 +94,25 @@ def test_a_wait_longer_than_a_minute_is_not_retried():
     with pytest.raises(HttpError) as e:
         send(client, "GET", "http://x.test/", what="X")
     assert len(calls) == 1 and not e.value.retryable
+
+
+def test_errors_read_as_sentences_and_keep_what_the_service_said():
+    busy = [{"error": {"code": 503, "message": "This model is currently experiencing high demand.", "status": "X"}}]
+    client, _ = replies(httpx.Response(503, json=busy))
+    with pytest.raises(llm.LlmError) as e:
+        llm.complete(client, S, "s", "u", Assessment)
+    assert str(e.value) == "The model was down or overloaded (HTTP 503)"
+    assert e.value.detail == "This model is currently experiencing high demand."
+
+    client, _ = replies(httpx.Response(404, text="<!DOCTYPE html><pre>Cannot POST /webhook/x</pre>"))
+    with pytest.raises(HttpError) as e2:
+        send(client, "POST", "http://x.test/", what="n8n")
+    assert str(e2.value) == "n8n refused the request (HTTP 404)" and e2.value.detail == ""
+
+    client, _ = replies(httpx.Response(400, json={"status": "error", "message": "Property values were not valid"}))
+    with pytest.raises(HttpError) as e3:
+        send(client, "POST", "http://x.test/", what="HubSpot")
+    assert e3.value.detail == "Property values were not valid"
 
 
 def test_backoff_and_retry_after():

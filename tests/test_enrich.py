@@ -74,7 +74,7 @@ def test_large_pages_are_cut_off():
 
 def test_unknown_hosts_are_unreachable_not_blocked():
     data = enrich.enrich("https://no-such-company.invalid", transport({}))
-    assert data["status"] == "unreachable" and "does not resolve" in data["error"]
+    assert data["status"] == "unreachable" and "does not exist" in data["error"]
 
 
 def test_timeouts_and_non_html_are_reported():

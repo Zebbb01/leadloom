@@ -80,7 +80,7 @@ def check_host(host: str, allow_private: bool = False) -> None:
     try:
         infos = socket.getaddrinfo(host, None)
     except (socket.gaierror, UnicodeError):
-        raise NoSuchHost(f"{host} does not resolve.") from None
+        raise NoSuchHost(f"{host} does not exist") from None
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if not ip.is_global and not allow_private:
@@ -143,10 +143,12 @@ def enrich(website: str, client: httpx.Client, allow_private: bool = False) -> d
         return {"status": "blocked", "url": url, "error": str(e)}
     except NoSuchHost as e:
         return {"status": "unreachable", "url": url, "error": str(e)}
-    except httpx.HTTPError as e:
-        return {"status": "unreachable", "url": url, "error": type(e).__name__}
+    except httpx.TimeoutException:
+        return {"status": "unreachable", "url": url, "error": "it took too long to answer"}
+    except httpx.HTTPError:
+        return {"status": "unreachable", "url": url, "error": "the connection failed"}
     if r.status_code != 200:
-        return {"status": "unreachable", "url": url, "error": f"HTTP {r.status_code}"}
+        return {"status": "unreachable", "url": url, "error": f"it answered HTTP {r.status_code}"}
     if "html" not in r.headers.get("content-type", ""):
         return {"status": "not_html", "url": url}
     return {"status": "ok", "url": str(r.request.url), **parse_html(r.text)}

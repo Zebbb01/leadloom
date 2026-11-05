@@ -144,7 +144,7 @@ def score(
     if scoring.junk_rule(lead):
         return {"assessment": None, "error": None}, None
     if not s.llm_api_key:
-        return {"assessment": None, "error": "no model is configured (LLM_API_KEY)"}, None
+        return {"assessment": None, "error": "No model is configured (LLM_API_KEY is empty)"}, None
     with db.connection() as c:
         row = c.execute(
             "select count(*) as n from steps where name = 'score' and tokens_in > 0 "
@@ -152,13 +152,13 @@ def score(
         ).fetchone()
     used = row["n"] if row else 0
     if used >= s.daily_llm_cap:
-        return {"assessment": None, "error": f"the daily cap of {s.daily_llm_cap} model calls is reached"}, None
+        return {"assessment": None, "error": f"Today's cap of {s.daily_llm_cap} model calls is used up"}, None
     try:
         a, usage = llm.complete(
             client, s, scoring.SYSTEM_PROMPT, scoring.user_prompt(lead, dd, site), scoring.Assessment
         )
     except llm.LlmError as e:
-        return {"assessment": None, "error": str(e)}, e.usage
+        return {"assessment": None, "error": str(e), "detail": e.detail}, e.usage
     return {"assessment": a.model_dump(), "error": None}, usage
 
 
@@ -198,6 +198,7 @@ def qualify(
                         "rules": [o["rule"] for o in decision["overrides"]],
                         "review_reasons": decision["review_reasons"],
                         "model_error": scored["error"],
+                        **({"model_error_detail": scored["detail"]} if scored.get("detail") else {}),
                     },
                 )
         row = get(db, lead_id)
@@ -428,9 +429,15 @@ def sync(db: Pool, s: Settings, lead_id: str, crm: httpx.Client | None) -> dict:
             with db.connection() as c, c.transaction():
                 c.execute(
                     "update leads set status = 'failed', error = %s, updated_at = now() where id = %s",
-                    (str(e)[:500], lead_id),
+                    (str(e), lead_id),
                 )
-                audit(c, lead_id, "leadloom", "sync_failed", {"error": str(e)[:500]})
+                audit(
+                    c,
+                    lead_id,
+                    "leadloom",
+                    "sync_failed",
+                    {"error": str(e), **({"detail": e.detail} if e.detail else {})},
+                )
             raise
         with db.connection() as c, c.transaction():
             claimed = (
@@ -486,7 +493,7 @@ def resume_n8n(client: httpx.Client, s: Settings, lead_id: str, resume_url: str 
 
 def retry_in_n8n(client: httpx.Client, s: Settings, lead_id: str) -> str:
     if not s.n8n_webhook_url:
-        raise HttpError("n8n is not configured (LEADLOOM_N8N_WEBHOOK_URL).", retryable=False)
+        raise HttpError("n8n is not configured here (LEADLOOM_N8N_WEBHOOK_URL is empty)", retryable=False)
     wait_for_n8n(client, s)
     send(
         client,
