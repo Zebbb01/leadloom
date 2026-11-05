@@ -17,8 +17,9 @@ The seller is **Kestrel Fleet**, a fictional route-planning SaaS for delivery fl
 
 **Live demo: https://ca-leadloom-8s6bzq-api.salmonriver-2ba7975b.southeastasia.azurecontainerapps.io**
 (no sign-up; send a sample lead and act as its reviewer). Both apps scale to zero, so after a quiet spell the
-page takes about 20 seconds to wake and n8n up to two minutes; leads sent meanwhile wait for it. No Slack
-workspace is attached to the live demo, so its hot leads skip the alert; locally a mock Slack receives it.
+page takes about 20 seconds to wake and n8n up to two minutes (opening the page starts waking it); a lead sent
+meanwhile waits for it. No Slack workspace is attached to the live demo, so its hot leads skip the alert; locally
+a mock Slack receives it.
 
 ![A booked demo: score 86, hot, the booked-meeting rule raised intent, synced to HubSpot, alert sent](docs/screenshots/lead-synced.png)
 

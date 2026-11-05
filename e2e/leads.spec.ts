@@ -172,3 +172,9 @@ test("on a phone the choice controls line up in even rows", async ({ page }) => 
   const routes = await rows(".decision .seg label");
   expect([...new Set(routes)].map((top) => routes.filter((t) => t === top).length)).toEqual([3, 3]);
 });
+
+test("opening Try it starts waking n8n", async ({ page }) => {
+  const wake = page.waitForRequest((r) => r.url().endsWith("/n8n/wake") && r.method() === "POST");
+  await page.goto("/");
+  await wake;
+});

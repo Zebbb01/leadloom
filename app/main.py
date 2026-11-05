@@ -9,14 +9,14 @@ import re
 import secrets
 import uuid
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -352,6 +352,18 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
         return response
 
     # ---- demo --------------------------------------------------------------------
+
+    @app.post("/n8n/wake", status_code=204)
+    def wake_n8n(request: Request, tasks: BackgroundTasks) -> None:
+        """The Try it page calls this as it loads, so a scaled-to-zero n8n starts while
+        the visitor picks a sample instead of after they press Send."""
+
+        def wake() -> None:
+            with suppress(HttpError):  # Sending waits again and reports it.
+                pipeline.wait_for_n8n(request.app.state.n8n, s)
+
+        if s.n8n_webhook_url:
+            tasks.add_task(wake)
 
     @app.post("/demo/send")
     def demo_send(
