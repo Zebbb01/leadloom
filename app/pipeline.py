@@ -449,11 +449,30 @@ def sync(db: Pool, s: Settings, lead_id: str, crm: httpx.Client | None) -> dict:
         return {"lead_id": lead_id, "status": "synced", "hubspot": result, "alert": alert}
 
 
+def wait_for_n8n(client: httpx.Client, s: Settings, within_s: float = 150.0) -> None:
+    """n8n scales to zero. A waking replica accepts requests before it has set up its
+    webhooks and answers them with 404 until /healthz/readiness says 200, so callers
+    wait for that first (up to two and a half minutes, or 75 checks)."""
+    url = s.n8n_webhook_url.removesuffix("/webhook") + "/healthz/readiness"
+    deadline = time.monotonic() + within_s
+    for _ in range(75):
+        try:
+            if client.get(url, timeout=15.0).status_code == 200:
+                return
+        except httpx.TransportError:
+            pass
+        if time.monotonic() > deadline:
+            break
+        time.sleep(2)
+    raise HttpError(f"n8n did not wake up within {within_s:.0f} s", retryable=True)
+
+
 def resume_n8n(client: httpx.Client, s: Settings, lead_id: str, resume_url: str | None, approved: bool) -> str:
     """Resumes n8n's waiting run with the decision. When that run is gone (a restart
     lost it, or it timed out), an approved lead goes through n8n's retry webhook."""
     body = {"lead_id": lead_id, "decision": "approve" if approved else "reject"}
     if resume_url:
+        wait_for_n8n(client, s)
         try:
             send(client, "POST", resume_url, what="n8n", json=body, attempts=3)
             return "resumed"
@@ -468,6 +487,7 @@ def resume_n8n(client: httpx.Client, s: Settings, lead_id: str, resume_url: str 
 def retry_in_n8n(client: httpx.Client, s: Settings, lead_id: str) -> str:
     if not s.n8n_webhook_url:
         raise HttpError("n8n is not configured (LEADLOOM_N8N_WEBHOOK_URL).", retryable=False)
+    wait_for_n8n(client, s)
     send(
         client,
         "POST",
