@@ -169,6 +169,14 @@ def test_demo_explains_an_n8n_that_stays_down(client, router):
     assert router.to("n8n.test", "/webhook") == []
 
 
+def test_opening_try_it_wakes_n8n(client, router):
+    # The page calls this as it loads, so n8n starts while the visitor picks a sample.
+    assert client.post("/n8n/wake").status_code == 204
+    assert [c.url.path for c in router.to("n8n.test")] == ["/healthz/readiness"]
+    router.replies["n8n.test"] = (503, {})
+    assert client.post("/n8n/wake").status_code == 204
+
+
 def test_demo_limits(make_client, settings, router):
     client = make_client(make_settings(settings.database_url, demo_daily_per_workspace=0))
     r = client.post("/demo/send", data={"sample": "brightpath-booking"})

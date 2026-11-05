@@ -2,6 +2,10 @@
 // confirmation dialogs, and polling while n8n works on a lead. Every page still
 // works without this file.
 
+// n8n scales to zero and takes a minute or two to wake, so start it while the visitor
+// picks a sample.
+if (document.querySelector(".sample") && navigator.sendBeacon) navigator.sendBeacon("/n8n/wake");
+
 // Picking a sample fills the composer with its message, sender and channel.
 document.querySelectorAll(".sample input").forEach((radio) => {
   radio.addEventListener("change", () => {
