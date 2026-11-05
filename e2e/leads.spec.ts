@@ -173,6 +173,26 @@ test("on a phone the choice controls line up in even rows", async ({ page }) => 
   expect([...new Set(routes)].map((top) => routes.filter((t) => t === top).length)).toEqual([3, 3]);
 });
 
+test("a busy model is explained in plain words and the lead waits for a person", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".sample", { hasText: "HVAC company with 18 vans asks if it fits" }).click();
+  await page.locator("#message").fill("[busy] Does Kestrel work for HVAC technicians?");
+  await page.getByRole("button", { name: "Send through n8n" }).click();
+  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/);
+  await expect(status(page)).toHaveText("Needs review");
+  await expect(page.getByRole("region", { name: "Needs your decision" })).toContainText(
+    "The model was down or overloaded (HTTP 503), so the rules gave this lead a default score",
+  );
+  await expect(page.locator("main")).not.toContainText("UNAVAILABLE");
+});
+
+test("a lead that is not there is a page, not an error dump", async ({ page }) => {
+  await page.goto("/leads/00000000-0000-0000-0000-000000000000");
+  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
+  await page.getByRole("link", { name: "Try a sample lead" }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
 test("opening Try it starts waking n8n", async ({ page }) => {
   const wake = page.waitForRequest((r) => r.url().endsWith("/n8n/wake") && r.method() === "POST");
   await page.goto("/");

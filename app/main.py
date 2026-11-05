@@ -17,11 +17,13 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import db as database
 from . import hubspot, intake, pipeline
@@ -53,11 +55,15 @@ VIEWS: dict[str, set[str]] = {
     "synced": {"synced"},
     "closed": {"discarded", "rejected", "failed"},
 }
+ERROR_PAGES = {
+    404: ("Not found", "There is nothing at this address. Demo leads show only in the browser that sent them."),
+    500: ("Something went wrong", "LeadLoom hit an unexpected error and logged it. Try again in a minute."),
+}
 SITE_NAMES = {
     "robots_disallowed": "Not read: the site's robots.txt asks LeadLoomBot to stay out.",
     "robots_unreachable": "Not read: robots.txt could not be fetched, which RFC 9309 treats as a refusal.",
     "blocked": "Not fetched: the address points to a private or reserved network.",
-    "unreachable": "The site could not be reached.",
+    "unreachable": "Couldn't open the site.",
     "not_html": "The site did not return a web page.",
 }
 ROBOTS = """User-agent: LeadLoomBot
@@ -149,9 +155,35 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             )
         return response
 
+    # People get a page in the site's design; n8n and other API callers keep JSON.
+    def for_people(request: Request) -> bool:
+        return not request.url.path.startswith("/v1/")
+
+    def error_page(request: Request, status: int) -> Response:
+        title, text = ERROR_PAGES[status]
+        response = page(request, "error.html", title=title, text=text)
+        response.status_code = status
+        return response
+
     @app.exception_handler(pipeline.NotFound)
-    async def not_found(request: Request, e: Exception) -> JSONResponse:
+    async def not_found(request: Request, e: Exception) -> Response:
+        if for_people(request):
+            return error_page(request, 404)
         return JSONResponse({"error": "No such lead."}, 404)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, e: Exception) -> Response:
+        assert isinstance(e, StarletteHTTPException)
+        if e.status_code == 404 and for_people(request):
+            return error_page(request, 404)
+        return await http_exception_handler(request, e)
+
+    @app.exception_handler(Exception)
+    async def crashed(request: Request, e: Exception) -> Response:
+        # Starlette still logs the traceback; the visitor sees no internals.
+        if for_people(request):
+            return error_page(request, 500)
+        return JSONResponse({"error": "Unexpected error. It is logged."}, 500)
 
     @app.exception_handler(pipeline.Conflict)
     async def conflict(request: Request, e: Exception) -> JSONResponse:
@@ -314,7 +346,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
                 "nothing to resume": "Saved.",
             }[how]
         except HttpError as e:
-            message = f"Saved, but n8n could not be reached ({e}). Use Retry."
+            message = f"Saved, but {e}. Use Retry to send it again."
         return back(lead_id, message)
 
     @app.post("/leads/{lead_id}/retry")
@@ -324,7 +356,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             pipeline.retry_in_n8n(request.app.state.n8n, s, str(lead_id))
             return back(lead_id, "Sent back through n8n.", watch="1")
         except HttpError as e:
-            return back(lead_id, f"n8n could not be reached ({e}).")
+            return back(lead_id, f"Not sent: {e}. Try again in a minute.")
 
     @app.get("/signin", response_class=HTMLResponse)
     def signin_page(request: Request) -> HTMLResponse:
@@ -398,10 +430,12 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
                 attempts=2,
             )
             lead_id = r.json()["lead_id"]
-        except (HttpError, ValueError, KeyError) as e:
-            # An error page from n8n is no use on ours: show its status, not its body.
-            why = f"n8n answered HTTP {e.status}" if isinstance(e, HttpError) and e.status else str(e)[:200]
-            return RedirectResponse(f"/?error=The lead did not get through n8n ({why}). Try again in a minute.", 303)
+        except HttpError as e:
+            return RedirectResponse(f"/?error=The lead did not get through: {e}. Try again in a minute.", 303)
+        except (ValueError, KeyError):
+            return RedirectResponse(
+                "/?error=n8n took the lead but did not say which one. Check Leads in a moment.", 303
+            )
         return RedirectResponse(f"/leads/{lead_id}", 303)
 
     @app.get("/sample-sites/{slug}", response_class=HTMLResponse)

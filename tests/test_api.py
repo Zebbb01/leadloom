@@ -115,6 +115,18 @@ def test_demo_leads_stay_in_their_browser(client, make_client):
     assert stranger.get(f"/leads/{lead_id}").status_code == 200
 
 
+def test_a_busy_model_is_explained_in_words(make_client, settings, router):
+    client = make_client(make_settings(settings.database_url, llm_endpoint="http://llm.test"))
+    router.replies["llm.test"] = (503, [{"error": {"code": 503, "message": "High demand.", "status": "UNAVAILABLE"}}])
+    body = booking(uid="bk-busy")
+    lead_id = client.post("/v1/intake/booking", content=body, headers=signed(body)).json()["lead_id"]
+    assert client.post(f"/v1/leads/{lead_id}/qualify", headers=KEY).json()["next"] == "review"
+    client.post("/signin", data={"key": "test-reviewer-key"})
+    page = client.get(f"/leads/{lead_id}").text
+    assert "The model was down or overloaded (HTTP 503), so the rules gave this lead a default score" in page
+    assert "UNAVAILABLE" not in page and "[{" not in page and "Confidence" not in page
+
+
 @pytest.mark.parametrize(
     "sample,channel",
     [
@@ -200,6 +212,24 @@ def test_pages_render(client):
     assert home.status_code == 200 and "Send through n8n" in home.text
     assert "No leads yet" in client.get("/leads").text
     assert client.get("/health").json() == {"ok": True}
+
+
+def test_browser_errors_are_pages_and_api_errors_stay_json(client):
+    missing = "00000000-0000-0000-0000-000000000000"
+    for path in (f"/leads/{missing}", "/nowhere"):
+        r = client.get(path)
+        assert r.status_code == 404 and "<h1>Not found</h1>" in r.text and "detail" not in r.text
+    api = client.post(f"/v1/leads/{missing}/qualify", headers=KEY)
+    assert api.status_code == 404 and api.json() == {"error": "No such lead."}
+
+
+def test_an_unexpected_error_is_a_calm_page(settings, db, router, monkeypatch):
+    monkeypatch.setattr("app.pipeline.get", lambda *a: 1 / 0)
+    with TestClient(create_app(settings, transport=router), raise_server_exceptions=False) as c:
+        r = c.get("/leads/00000000-0000-0000-0000-000000000000")
+        api = c.post("/v1/leads/00000000-0000-0000-0000-000000000000/qualify", headers=KEY)
+    assert r.status_code == 500 and "Something went wrong" in r.text and "ZeroDivision" not in r.text
+    assert api.status_code == 500 and api.json() == {"error": "Unexpected error. It is logged."}
 
 
 def test_basic_auth_helper_matches_postmark():

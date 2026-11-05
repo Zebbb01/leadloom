@@ -23,9 +23,10 @@ _DROP = ("title", "default", "minimum", "maximum", "minLength", "maxLength", "mi
 
 
 class LlmError(Exception):
-    def __init__(self, message: str, usage: dict | None = None):
+    def __init__(self, message: str, usage: dict | None = None, detail: str = ""):
         super().__init__(message)
         self.usage = usage or {"tokens_in": 0, "tokens_out": 0}
+        self.detail = detail
 
 
 def cost_usd(model: str, tokens_in: int, tokens_out: int) -> float:
@@ -72,7 +73,7 @@ def complete[T: BaseModel](client: httpx.Client, s: Settings, system: str, user:
             timeout=httpx.Timeout(60.0, connect=5.0),
         )
     except HttpError as e:
-        raise LlmError(str(e)) from e
+        raise LlmError(str(e), detail=e.detail) from e
     data = r.json()
     usage = {
         "tokens_in": (data.get("usage") or {}).get("prompt_tokens", 0),
@@ -83,4 +84,4 @@ def complete[T: BaseModel](client: httpx.Client, s: Settings, system: str, user:
         return model.model_validate_json(content), usage
     except (KeyError, IndexError, TypeError, ValidationError) as e:
         detail = e.errors()[0]["msg"] if isinstance(e, ValidationError) else "no message content"
-        raise LlmError(f"The model's answer did not match the schema ({detail}).", usage) from e
+        raise LlmError("The model's answer did not fit the expected format", usage, detail) from e
