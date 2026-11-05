@@ -42,8 +42,8 @@ def no_waiting(monkeypatch):
 
 class Router(httpx.BaseTransport):
     """The network for tests: http://mock/... goes to the mock services, http://sites.test
-    serves the sample websites, and every other host gets a canned reply. Every request
-    is recorded."""
+    serves the sample websites, and every other host gets a canned reply (or a function
+    of the request). Every request is recorded."""
 
     def __init__(self):
         self.mock = TestClient(create_mock())
@@ -63,8 +63,9 @@ class Router(httpx.BaseTransport):
             if page.is_file():
                 return httpx.Response(200, headers={"content-type": "text/html"}, content=page.read_bytes())
             return httpx.Response(404)
-        status, reply = self.replies.get(request.url.host, (200, {"ok": True}))
-        return httpx.Response(status, json=reply)
+        reply = self.replies.get(request.url.host, (200, {"ok": True}))
+        status, body = reply(request) if callable(reply) else reply
+        return httpx.Response(status, json=body)
 
     def to(self, host: str, path: str = "") -> list[httpx.Request]:
         return [c for c in self.calls if c.url.host == host and c.url.path.startswith(path)]

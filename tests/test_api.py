@@ -143,6 +143,32 @@ def test_demo_sends_what_the_real_sender_would(client, router, sample, channel):
     assert lead.website.startswith("http://testserver/sample-sites/") or source == "email"
 
 
+def test_demo_waits_for_n8n_to_wake(client, router):
+    # n8n scales to zero. A waking replica accepts requests before it has set up its
+    # webhooks and answers them with 404 until /healthz/readiness says 200.
+    checks = iter([503, 503, 200])
+    ready = False
+
+    def n8n(request):
+        nonlocal ready
+        if request.url.path == "/healthz/readiness":
+            ready = next(checks) == 200
+            return (200 if ready else 503), {}
+        return (200, {"lead_id": "11111111-1111-1111-1111-111111111111"}) if ready else (404, "Cannot POST")
+
+    router.replies["n8n.test"] = n8n
+    r = client.post("/demo/send", data={"sample": "brightpath-booking"})
+    assert r.headers["location"] == "/leads/11111111-1111-1111-1111-111111111111"
+    assert [c.url.path for c in router.to("n8n.test")][-2:] == ["/healthz/readiness", "/webhook/leads/booking"]
+
+
+def test_demo_explains_an_n8n_that_stays_down(client, router):
+    router.replies["n8n.test"] = (503, {})
+    location = unquote_plus(client.post("/demo/send", data={"sample": "brightpath-booking"}).headers["location"])
+    assert "did not wake up" in location and "<" not in location
+    assert router.to("n8n.test", "/webhook") == []
+
+
 def test_demo_limits(make_client, settings, router):
     client = make_client(make_settings(settings.database_url, demo_daily_per_workspace=0))
     r = client.post("/demo/send", data={"sample": "brightpath-booking"})

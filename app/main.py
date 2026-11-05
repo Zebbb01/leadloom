@@ -375,6 +375,7 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
         channel = channel if channel in intake.SOURCES else x["channel"]
         body, headers = demo_payload(s, x, channel, message.strip() or x["message"], ws)
         try:
+            pipeline.wait_for_n8n(request.app.state.n8n, s)
             r = send(
                 request.app.state.n8n,
                 "POST",
@@ -386,7 +387,9 @@ def create_app(s: Settings | None = None, transport: httpx.BaseTransport | None 
             )
             lead_id = r.json()["lead_id"]
         except (HttpError, ValueError, KeyError) as e:
-            return RedirectResponse(f"/?error=The lead did not get through n8n ({str(e)[:200]}).", 303)
+            # An error page from n8n is no use on ours: show its status, not its body.
+            why = f"n8n answered HTTP {e.status}" if isinstance(e, HttpError) and e.status else str(e)[:200]
+            return RedirectResponse(f"/?error=The lead did not get through n8n ({why}). Try again in a minute.", 303)
         return RedirectResponse(f"/leads/{lead_id}", 303)
 
     @app.get("/sample-sites/{slug}", response_class=HTMLResponse)
